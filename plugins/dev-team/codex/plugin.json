@@ -1,0 +1,6 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "dev-team",
+  "version": "0.1.0",
+  "description": "Scoped implementation, verified research and independent review, coordinated by the main session."
+}

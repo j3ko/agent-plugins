@@ -1,0 +1,14 @@
+{
+  "name": "j3ko-agents",
+  "owner": {
+    "name": "j3ko"
+  },
+  "description": "Shared development workflows with Claude Code and Codex adapters.",
+  "plugins": [
+    {
+      "name": "dev-team",
+      "source": "./plugins/dev-team/claude",
+      "description": "Scoped implementation, verified research and independent review, coordinated by the main session."
+    }
+  ]
+}

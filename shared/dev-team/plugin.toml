@@ -1,0 +1,12 @@
+name = "dev-team"
+version = "0.1.0"
+description = "Scoped implementation, verified research and independent review, coordinated by the main session."
+
+[roles.implementer]
+description = "Implement a written handoff spec in an assigned worktree and open or update its PR."
+
+[roles.researcher]
+description = "Verify external APIs, documentation and environment facts without changing repository or external state."
+
+[roles.reviewer]
+description = "Independently review a PR against its spec and project conventions; report verified defects without fixing or approving it."

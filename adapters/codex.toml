@@ -1,0 +1,10 @@
+# Omit model to inherit the parent session's available model.
+# Codex subagents inherit permissions; these files do not create read-only sandboxes.
+[roles.implementer]
+model_reasoning_effort = "medium"
+
+[roles.researcher]
+model_reasoning_effort = "medium"
+
+[roles.reviewer]
+model_reasoning_effort = "high"

@@ -1,0 +1,13 @@
+[roles.implementer]
+model = "sonnet"
+effort = "medium"
+isolation = "worktree"
+
+[roles.researcher]
+model = "sonnet"
+effort = "medium"
+disallowedTools = ["Edit", "Write", "NotebookEdit"]
+
+[roles.reviewer]
+model = "opus"
+isolation = "worktree"
