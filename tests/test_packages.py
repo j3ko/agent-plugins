@@ -45,6 +45,14 @@ class PackageTests(unittest.TestCase):
         self.assertNotIn('model', codex)
         self.run_script('build.py', '--check')
 
+    def test_claude_package_is_versioned_by_commit_not_a_pinned_string(self):
+        manifest = json.loads((self.root / 'plugins/dev-team/claude/.claude-plugin/plugin.json').read_text())
+        self.assertNotIn('version', manifest)
+        entry = json.loads((self.root / '.claude-plugin/marketplace.json').read_text())['plugins'][0]
+        self.assertNotIn('version', entry)
+        codex = json.loads((self.root / 'plugins/dev-team/codex/.codex-plugin/plugin.json').read_text())
+        self.assertEqual(codex['version'], tomllib.loads((self.root / 'shared/dev-team/plugin.toml').read_text())['version'])
+
     def test_packages_remain_self_contained_when_copied_outside_source(self):
         for host in ('claude', 'codex'):
             package = self.root / f'plugins/dev-team/{host}'
