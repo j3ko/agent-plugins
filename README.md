@@ -57,6 +57,10 @@ Codex roles inherit the parent's available model, with medium reasoning for
 implementation/research and high reasoning for review. Change those choices in
 `adapters/` and regenerate rather than editing generated files.
 
+The Claude package carries no `version`, so Claude Code versions it by commit and
+`claude plugin update` picks up every push. `version` in `shared/dev-team/plugin.toml`
+only reaches the Codex manifests.
+
 ## Project integration and isolation
 
 Keep each project's commands, documentation paths, signing rules, PR tool and

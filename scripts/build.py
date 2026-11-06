@@ -21,8 +21,12 @@ def outputs(root: Path) -> dict[str, str]:
     result: dict[str, str] = {}
     base = "plugins/dev-team"
     identity = {key: meta[key] for key in ("name", "version", "description")}
+    # No "version" for Claude: a pinned manifest version keeps installs on the cached
+    # copy until the string changes. Without one (and none in the marketplace entry),
+    # Claude Code versions the plugin by commit SHA, so every push is an update.
+    claude_identity = {key: value for key, value in identity.items() if key != "version"}
     result[f"{base}/claude/.claude-plugin/plugin.json"] = json_file(
-        {**identity, "author": {"name": "j3ko"}}
+        {**claude_identity, "author": {"name": "j3ko"}}
     )
     result[f"{base}/codex/plugin.json"] = json_file(
         {"$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json", **identity}
