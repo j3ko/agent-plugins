@@ -53,9 +53,11 @@ installer. `--agents-only` avoids installing the same skill through two discover
 paths. The native project installation is the simplest option for CLI and IDE.
 
 Claude's adapter selects Sonnet for implementation/research and Opus for review.
-Codex roles inherit the parent's available model, with medium reasoning for
-implementation/research and high reasoning for review. Change those choices in
-`adapters/` and regenerate rather than editing generated files.
+Codex defaults to GPT-6.1 Sol with medium reasoning for implementation, GPT-6 Luna
+with high reasoning for research, and GPT-6.1 Sol with high reasoning for review.
+For complex research, use Sol with medium reasoning; reserve Astra with medium
+reasoning for particularly difficult reviews. Change the defaults in `adapters/`
+and regenerate rather than editing generated files.
 
 The Claude package carries no `version`, so Claude Code versions it by commit and
 `claude plugin update` picks up every push. `version` in `shared/dev-team/plugin.toml`

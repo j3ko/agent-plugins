@@ -42,8 +42,22 @@ class PackageTests(unittest.TestCase):
         self.assertEqual(claude, source.read_text())
         self.assertEqual(codex['developer_instructions'], source.read_text())
         self.assertEqual(codex['model_reasoning_effort'], 'high')
-        self.assertNotIn('model', codex)
+        self.assertEqual(codex['model'], 'gpt-6.1-sol')
         self.run_script('build.py', '--check')
+
+    def test_codex_role_defaults_survive_generation_and_installation(self):
+        self.run_script('install_codex.py', '--project', self.project)
+        expected = {
+            'implementer': ('gpt-6.1-sol', 'medium'),
+            'researcher': ('gpt-6-luna', 'high'),
+            'reviewer': ('gpt-6.1-sol', 'high'),
+        }
+        for role, (model, effort) in expected.items():
+            for directory in (self.root / 'plugins/dev-team/codex/agents', self.project / '.codex/agents'):
+                with self.subTest(role=role, directory=directory):
+                    config = tomllib.loads((directory / f'dev-team-{role}.toml').read_text())
+                    self.assertEqual(config['model'], model)
+                    self.assertEqual(config['model_reasoning_effort'], effort)
 
     def test_claude_package_is_versioned_by_commit_not_a_pinned_string(self):
         manifest = json.loads((self.root / 'plugins/dev-team/claude/.claude-plugin/plugin.json').read_text())
