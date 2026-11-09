@@ -77,6 +77,9 @@ class PackageTests(unittest.TestCase):
             self.assertEqual(skill.read_bytes(), (self.root / 'shared/dev-team/skills/orchestrate/SKILL.md').read_bytes())
             for reference in ('claude.md', 'codex.md', 'spec-template.md'):
                 self.assertTrue((skill.parent / 'references' / reference).is_file())
+            for vendored in ('retro/SKILL.md', 'retro/LICENSE', 'writing-for-agents/SKILL.md',
+                             'writing-for-agents/SKILL-MECHANICS.md', 'writing-for-agents/LICENSE'):
+                self.assertTrue((copied / 'skills' / vendored).is_file(), vendored)
         for catalog in ('.claude-plugin/marketplace.json', '.agents/plugins/marketplace.json'):
             item = json.loads((self.root / catalog).read_text())['plugins'][0]
             source = item['source']
