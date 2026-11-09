@@ -41,7 +41,12 @@ class RoleSyncTests(unittest.TestCase):
     def role(self, name=NAMES[0]):
         return self.home / 'agents' / name
 
-    def newer_package(self, version='0.3.0'):
+    def newer_package(self, version=None):
+        if version is None:
+            # Stay ahead of the packaged release instead of hard-coding the next one.
+            current = json.loads((self.package / '.codex-plugin/plugin.json').read_text())['version']
+            major, minor, _ = map(int, current.split('.'))
+            version = f'{major}.{minor + 1}.0'
         newer = self.root / ('new cache ' + version)
         shutil.copytree(self.package, newer)
         manifest = newer / '.codex-plugin/plugin.json'
@@ -142,7 +147,8 @@ class RoleSyncTests(unittest.TestCase):
                 json.loads(stdout)
         for name in NAMES:
             self.assertEqual(self.role(name).read_bytes(), (newer / 'agents' / name).read_bytes())
-        self.assertEqual(json.loads(self.state.read_text())['package_version'], '0.3.0')
+        newer_version = json.loads((newer / '.codex-plugin/plugin.json').read_text())['version']
+        self.assertEqual(json.loads(self.state.read_text())['package_version'], newer_version)
 
     def test_state_for_another_home_does_not_authorize_replacement(self):
         self.run_hook(self.newer_package())
