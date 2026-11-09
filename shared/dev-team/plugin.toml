@@ -1,5 +1,5 @@
 name = "dev-team"
-version = "0.2.0"
+version = "0.2.1"
 description = "Scoped implementation, verified research and independent review, coordinated by the main session."
 
 [roles.implementer]
