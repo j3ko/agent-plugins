@@ -1,6 +1,7 @@
 {
   "name": "dev-team",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Scoped implementation, verified research and independent review, coordinated by the main session.",
-  "skills": "./skills/"
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks.json"
 }
