@@ -41,23 +41,20 @@ class PackageTests(unittest.TestCase):
         codex = tomllib.loads((self.root / 'plugins/dev-team/codex/agents/dev-team-reviewer.toml').read_text())
         self.assertEqual(claude, source.read_text())
         self.assertEqual(codex['developer_instructions'], source.read_text())
-        self.assertEqual(codex['model_reasoning_effort'], 'high')
-        self.assertEqual(codex['model'], 'gpt-6.1-sol')
+        self.assertNotIn('model_reasoning_effort', codex)
+        self.assertNotIn('model', codex)
         self.run_script('build.py', '--check')
 
-    def test_codex_role_defaults_survive_generation_and_installation(self):
+    def test_codex_roles_allow_runtime_selection_after_generation_and_installation(self):
         self.run_script('install_codex.py', '--project', self.project)
-        expected = {
-            'implementer': ('gpt-6.1-sol', 'medium'),
-            'researcher': ('gpt-6-luna', 'high'),
-            'reviewer': ('gpt-6.1-sol', 'high'),
-        }
-        for role, (model, effort) in expected.items():
+        for role in ('implementer', 'researcher', 'reviewer'):
             for directory in (self.root / 'plugins/dev-team/codex/agents', self.project / '.codex/agents'):
                 with self.subTest(role=role, directory=directory):
                     config = tomllib.loads((directory / f'dev-team-{role}.toml').read_text())
-                    self.assertEqual(config['model'], model)
-                    self.assertEqual(config['model_reasoning_effort'], effort)
+                    self.assertNotIn('model', config)
+                    self.assertNotIn('model_reasoning_effort', config)
+                    self.assertEqual(config['developer_instructions'],
+                                     (self.root / f'shared/dev-team/roles/{role}.md').read_text())
 
     def test_claude_package_is_versioned_by_commit_not_a_pinned_string(self):
         manifest = json.loads((self.root / 'plugins/dev-team/claude/.claude-plugin/plugin.json').read_text())
@@ -75,8 +72,10 @@ class PackageTests(unittest.TestCase):
             self.assertFalse(any(p.is_symlink() for p in copied.rglob('*')))
             skill = copied / 'skills/orchestrate/SKILL.md'
             self.assertEqual(skill.read_bytes(), (self.root / 'shared/dev-team/skills/orchestrate/SKILL.md').read_bytes())
-            for reference in ('claude.md', 'codex.md', 'spec-template.md'):
+            for reference in ('claude.md', 'codex.md', 'cross-host.md', 'spec-template.md'):
                 self.assertTrue((skill.parent / 'references' / reference).is_file())
+                self.assertEqual((skill.parent / 'references' / reference).read_bytes(),
+                                 (self.root / 'shared/dev-team/skills/orchestrate/references' / reference).read_bytes())
             for vendored in ('retro/SKILL.md', 'retro/LICENSE', 'writing-for-agents/SKILL.md',
                              'writing-for-agents/SKILL-MECHANICS.md', 'writing-for-agents/LICENSE'):
                 self.assertTrue((copied / 'skills' / vendored).is_file(), vendored)

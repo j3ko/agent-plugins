@@ -1,13 +1,8 @@
-# Explicit defaults keep routine delegation economical regardless of the parent model.
+# Model and reasoning choices are resolved by orchestrate at spawn time.
+# Pinning either here would override runtime selections in Codex.
 # Codex subagents inherit permissions; these files do not create read-only sandboxes.
 [roles.implementer]
-model = "gpt-6.1-sol"
-model_reasoning_effort = "medium"
 
 [roles.researcher]
-model = "gpt-6-luna"
-model_reasoning_effort = "high"
 
 [roles.reviewer]
-model = "gpt-6.1-sol"
-model_reasoning_effort = "high"

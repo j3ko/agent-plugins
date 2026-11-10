@@ -4,6 +4,15 @@ Fill in every section. "None" is a valid answer; a missing section isn't. Give p
 relative to the repo root: the implementer works in its own worktree.
 
 ```markdown
+## Dispatch
+- Role: <implementer | researcher | reviewer>
+- Host: <claude | codex>
+- Model: <resolved host model ID or alias>
+- Effort: <resolved supported level>
+- Working directory: <absolute assigned worktree path>
+- Report destination: <absolute path outside the reviewed source tree>
+- Permissions: <authorized project policy/config source and resolved launch settings>
+
 ## Goal
 <One or two sentences: what this PR achieves and why. One concern only.>
 

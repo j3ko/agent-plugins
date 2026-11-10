@@ -14,6 +14,21 @@ Read the reference for the host you are actually using:
 - [Claude Code](references/claude.md): role names, worktree isolation and model overrides.
 - [Codex](references/codex.md): role installation, explicit worktree assignment and inherited permissions.
 
+## Runtime selection
+
+Resolve host, model and effort for each role before launching: the owner's task-specific choice, then their session preference, then the defaults below. An unspecified host is the current host. Model names and effort levels belong to the selected host; a host change discards incompatible model preferences. Ask for an alternative if an explicit selection is unavailable.
+
+| Host | Implementer | Researcher | Reviewer |
+|---|---|---|---|
+| Claude | sonnet / medium | sonnet / medium | opus / high |
+| Codex | gpt-6.1-sol / medium | gpt-6-luna / high | gpt-6.1-sol / high |
+
+For example: "For this session, research with Codex Luna and implement with Claude Sonnet. For this task, review with Codex Sol at high effort." Keep session preferences in the conversation; persist them only when asked. State the resolved host/model/effort before dispatch and put them in the handoff.
+
+For native agents, pass model and effort through the host's spawn controls. Use a fresh agent when selections change. Codex model overrides require a fresh context rather than a full-history fork. If loaded role settings or the host's tool interface prevent the requested selection, report the limit before dispatch instead of silently inheriting another model.
+
+For another host, or a separate CLI session, read [cross-host handoffs](references/cross-host.md): role transfer, working directory, runtime arguments, project permission settings and report collection.
+
 ## Handoffs
 
 Settle material design choices before implementation and record durable choices where the project keeps decisions. Give each agent one concern. Use the [spec template](references/spec-template.md) for implementation: exact files, relevant decisions, scope, acceptance checks, branch, PR title and issue.
