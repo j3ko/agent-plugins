@@ -40,3 +40,21 @@ Codex requests it after an update, then restart after reported role changes.
 [mattpocock/skills](https://github.com/mattpocock/skills) at
 `4ae2317ddb22b046e26455e4f9c9b3aaaf62212d` under the MIT License; each folder
 includes its `LICENSE`.
+
+## Validation
+
+Run the same checks as CI with Python 3.11+ and no extra dependencies:
+
+```sh
+python3 scripts/build.py --check
+python3 scripts/check_skill_metadata.py
+python3 -m unittest discover -s tests -v
+```
+
+The metadata check covers existing `shared/dev-team/skills/*/agents/openai.yaml`
+files. Its supported YAML subset is `interface.display_name`,
+`interface.short_description` (25–64 characters), and optional
+`policy.allow_implicit_invocation` (`true` or `false`). Both interface fields are
+required and use JSON double-quoted strings. Blank lines and whole-line comments
+are allowed. Extend the checker before introducing other metadata fields or YAML
+syntax; it is not a general YAML parser.

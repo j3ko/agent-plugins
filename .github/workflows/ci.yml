@@ -11,5 +11,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Check generated packages
         run: python3 scripts/build.py --check
+      - name: Check skill metadata
+        run: python3 scripts/check_skill_metadata.py
       - name: Test generation and installation
         run: python3 -m unittest discover -s tests -v
