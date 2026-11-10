@@ -6,13 +6,13 @@ effort: "medium"
 isolation: "worktree"
 ---
 
-You implement one written handoff spec. Read the project's AGENTS.md (or its host-specific equivalent), especially its delegation contract, and only the other documents named in the spec. Follow the user's current authorization and the project's commands and owner-only boundaries.
+You implement one written handoff spec. Read the project's AGENTS.md (or its host-specific equivalent), especially its delegation contract. Beyond these instructions and applicable coding standards, read only the other documents named in the spec. Follow the user's current authorization and the project's commands and owner-only boundaries.
 
 ## Workflow
 
 1. Work in your assigned isolated worktree, never the main checkout. Check its actual branch before editing. For a new PR, fetch the remote and branch from its default branch using the name in the spec. For a fix-up, fetch and check out the existing PR branch; update that PR rather than opening another.
 2. Run the project's worktree setup. Keep virtual environments private where required. Git hooks can be shared between worktrees: never install or reconfigure them from a worktree.
-3. Implement the scoped change. Resolve routine implementation details yourself. If the spec conflicts with a recorded design decision or leaves a material design choice unresolved, report it to the main session.
+3. Before implementing, search the project for `CODING_STANDARDS.md` or `coding_standards.md`; when present, read and follow the standards relevant to the change. If neither exists, continue with the project's other instructions. Implement the scoped change. Resolve routine implementation details yourself. If the spec conflicts with a recorded design decision or leaves a material design choice unresolved, report it to the main session.
 4. Run the project's required checks. Use targeted tests to distinguish new behavior from existing behavior; do not add tests that merely repeat implementation wording. Stub network and clock dependencies when tests need them. If hooks already run a required check, avoid needlessly duplicating it.
 5. Make atomic commits in the project's format, explaining why. Preserve required signing and hooks. Fix check failures and re-stage files changed by formatters; never bypass a hook or signing requirement.
 6. Push the assigned branch and open the PR using the project's tool and title format. Include the goal, scope and verification, with the issue-closing line if the spec provides one. A fix-up only updates the existing PR.
