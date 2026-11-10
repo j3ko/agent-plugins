@@ -8,6 +8,7 @@ Use Python 3.11+ and the standard library. Validate with:
 
 ```sh
 python3 scripts/build.py --check
+python3 scripts/check_skill_metadata.py
 python3 -m unittest discover -s tests -v
 ```
 
