@@ -41,6 +41,20 @@ Codex requests it after an update, then restart after reported role changes.
 `4ae2317ddb22b046e26455e4f9c9b3aaaf62212d` under the MIT License; each folder
 includes its `LICENSE`.
 
+## Runtime agent choices
+
+Tell the orchestrator which host, model and effort to use, for example:
+
+> For this session, implement with Claude Sonnet at medium effort and review
+> with Codex Sol at high effort.
+
+A task-specific request overrides session preferences; remaining fields use the
+orchestration defaults. Choices apply to new agents and do not edit installed
+configuration. Cross-host work uses the destination CLI with an assigned worktree
+and explicit launch arguments. Both CLIs must already be installed and signed in.
+See the [cross-host handoff reference](shared/dev-team/skills/orchestrate/references/cross-host.md)
+for role transfer, project permission settings and validation limits.
+
 ## Validation
 
 Run the same checks as CI with Python 3.11+ and no extra dependencies:
