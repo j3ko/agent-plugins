@@ -55,6 +55,41 @@ and explicit launch arguments. Both CLIs must already be installed and signed in
 See the [cross-host handoff reference](shared/dev-team/skills/orchestrate/references/cross-host.md)
 for role transfer, project permission settings and validation limits.
 
+## Releases
+
+[Release Please](https://github.com/googleapis/release-please-action) maintains a
+release PR as Conventional Commits land on `main`. Review its version and changelog,
+then merge it when you want to publish. The next workflow run creates the `vX.Y.Z`
+tag and GitHub release; release PRs are never merged automatically.
+
+The starting version is `0.4.2`. Only commits after the bootstrap commit in
+`release-please-config.json` are included in the first release. `fix:` commits bump
+the patch and `feat:` commits bump the minor. Breaking changes (`feat!:` or a
+`BREAKING CHANGE:` footer) bump the minor while below `1.0.0`, then the major.
+Use the squash merge commit title and body to preserve these Conventional Commits.
+
+To choose an exact version, add a `Release-As: 0.5.0` footer (after a blank line)
+to a commit that lands on `main`. For a pending release, temporarily set
+`"release-as": "0.5.0"` in the `packages["."]` entry of
+`release-please-config.json`, merge the configuration change, and run the
+`release-please` workflow again if needed. Remove that override after the release
+so automatic version selection resumes. Editing only the release PR title does
+not override the version.
+
+Release Please updates `version.txt`, `.release-please-manifest.json`,
+`CHANGELOG.md`, the shared plugin version, and the Codex manifest's version
+in the same PR. The configured JSON update matches `scripts/build.py` output;
+CI checks that generated packages stay synchronized. When changing versions
+manually, edit `shared/dev-team/plugin.toml`, run `python3 scripts/build.py`, and
+keep `version.txt` and the release manifest consistent. Claude's manifests omit a
+version so installations continue to follow commits.
+
+The workflow requires a repository Actions secret named `RELEASE_PLEASE_TOKEN`.
+Use a fine-grained personal access token with repository access and read/write
+Contents, Issues, and Pull requests permissions. A PAT allows the generated PRs
+to trigger validation workflows, unlike the default `GITHUB_TOKEN`. Keep the
+secret renewed; the workflow deliberately has no fallback to `GITHUB_TOKEN`.
+
 ## Validation
 
 Run the same checks as CI with Python 3.11+ and no extra dependencies:
