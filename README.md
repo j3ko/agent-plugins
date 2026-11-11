@@ -39,8 +39,7 @@ Codex requests it after an update, then restart after reported role changes.
 `retro` and `writing-for-agents` originate from
 [mattpocock/skills](https://github.com/mattpocock/skills) at
 `4ae2317ddb22b046e26455e4f9c9b3aaaf62212d` under the MIT License; each folder
-includes its `LICENSE`. `writing-for-agents` is unchanged; `retro` has local changes
-to check for coding standards only at the repository root.
+includes its `LICENSE`.
 
 ## Runtime agent choices
 
