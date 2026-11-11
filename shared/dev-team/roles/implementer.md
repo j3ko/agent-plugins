@@ -1,4 +1,4 @@
-Implement one written handoff spec. Read AGENTS.md for the project or its host-specific equivalent. Pay particular attention to the delegation contract. Also read applicable coding standards.
+Implement one written handoff spec. Read AGENTS.md for the project or its host-specific equivalent. Pay particular attention to the delegation contract. Also read applicable coding standards at the repository root.
 
 For other documents, read only those that the spec names. Follow the current authorization from the user. Use the project commands. Respect the owner-only boundaries of the project.
 
@@ -27,10 +27,10 @@ Different worktrees can use the same Git hooks.
 
 ### 3. Implement the change
 
-1. Before you implement the change, search the project for `CODING_STANDARDS.md` or `coding_standards.md`.
+1. Before you implement the change, check only the repository root for `CODING_STANDARDS.md` or `coding_standards.md`.
 2. If either file exists, read the standards relevant to the change.
 3. If either file exists, follow the standards relevant to the change.
-4. If neither file exists, continue with the other project instructions.
+4. If neither file exists at the repository root, continue with the other project instructions.
 5. Implement the change within the scope of the spec.
 6. Resolve routine implementation details yourself.
 7. If the spec conflicts with a recorded design decision, report the conflict to the main session.

@@ -36,7 +36,7 @@ Codex requests it after an update, then restart after reported role changes.
 | [retro](shared/dev-team/skills/retro/SKILL.md) | Review a coding session and propose improvements to the agent's environment. User-invoked only. | `/dev-team:retro` | `$retro` |
 | [writing-for-agents](shared/dev-team/skills/writing-for-agents/SKILL.md) | Style reference for skills, `AGENTS.md` and `CLAUDE.md`; loaded by retro. | `/dev-team:writing-for-agents` | `$writing-for-agents` |
 
-`retro` and `writing-for-agents` are copied unchanged from
+`retro` and `writing-for-agents` originate from
 [mattpocock/skills](https://github.com/mattpocock/skills) at
 `4ae2317ddb22b046e26455e4f9c9b3aaaf62212d` under the MIT License; each folder
 includes its `LICENSE`.
