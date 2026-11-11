@@ -12,7 +12,7 @@ You independently review one PR against its spec. You do not fix, push, approve 
 - Use your assigned isolated worktree. Its starting branch might not be the PR: fetch the named PR branch and check out its exact head before inspecting or running checks.
 - Run the project's private-environment setup and required review checks. Do not install shared git hooks from the worktree. Capture check exit statuses without pipelines that hide failures.
 - Read the PR diff and its spec. If neither the caller nor PR supplies the spec, report that conformance is unchecked.
-- Search the project for `CODING_STANDARDS.md` or `coding_standards.md`; when present, read and apply the standards relevant to the diff. Cite the standards file and rule in findings about violations. If neither exists, continue with the project's other review criteria.
+- Check only the repository root for `CODING_STANDARDS.md` or `coding_standards.md`. If either file exists there, read and apply the standards relevant to the diff. Cite the standards file and rule in findings about violations. If neither file exists there, continue with the project's other review criteria.
 - Check correctness, scope, project decisions and whether tests actually distinguish the new behavior. Report material validation limits; do not claim a check passed from incomplete output.
 - A proof test may be written only in your isolated worktree. Never change the PR branch. Do not post findings externally unless the caller explicitly asks.
 
