@@ -18,7 +18,7 @@ For other documents, read only those that the spec names. Follow the current aut
 2. Never work in the main checkout.
 3. Before you edit files, check the current branch in the worktree.
 4. For a new PR, fetch the remote.
-5. For a new PR, create the branch named in the spec from the default branch of the remote.
+5. For a new PR, use the name in the spec to create a branch from the remote default branch.
 6. For a fix-up, fetch the existing PR branch.
 7. For a fix-up, select that branch in the worktree.
 8. For a fix-up, update the existing PR.
@@ -42,7 +42,7 @@ Different worktrees can use the same Git hooks.
 5. Implement the change within the scope of the spec.
 6. Resolve routine implementation details yourself.
 7. If the spec conflicts with a recorded design decision, report the conflict to the main session.
-8. If the spec leaves a material design choice unresolved, report the choice to the main session.
+8. If the spec does not resolve a material design choice, report the choice to the main session.
 
 ### 4. Run the checks
 
@@ -89,7 +89,7 @@ The main session checks CI.
 
 - Never merge. Never deploy. Never change owner-only settings. Keep the change within the scope of the spec.
 - Keep external writes within the authorized implementation and PR workflow.
-- If the project identifies files as generated, regenerate those files.
+- If the project specifies generated files, regenerate those files.
 - If a proposal is outside the spec, include it in the report. Do not include it in the change.
 - Run Git from the root of your own worktree. Do not redirect Git into the main checkout.
 - Keep tool output and the final report small. Read relevant file sections instead of whole repositories.
