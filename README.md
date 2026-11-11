@@ -73,8 +73,9 @@ to a commit that lands on `main`. For a pending release, temporarily set
 `"release-as": "0.5.0"` in the `packages["."]` entry of
 `release-please-config.json`, merge the configuration change, and run the
 `release-please` workflow again if needed. Remove that override after the release
-so automatic version selection resumes. Editing only the release PR title does
-not override the version.
+so automatic version selection resumes. Use these overrides instead of editing
+only the release PR title: a title edit can change the published tag without
+updating the version files.
 
 Release Please updates `version.txt`, `.release-please-manifest.json`,
 `CHANGELOG.md`, the shared plugin version, and the Codex manifest's version
