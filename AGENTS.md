@@ -13,15 +13,16 @@ python3 -m unittest discover -s tests -v
 ```
 
 Keep each plugin package self-contained. Do not create links that point outside a plugin root.
-Plugin installation must not silently change permissions, authentication, unrelated agent
-files or external services. Use temporary project directories to test installers.
+Make sure that plugin installation does not silently change permissions, authentication,
+unrelated agent files or external services. Use temporary project directories to test
+installers.
 
 After the initial bootstrap, use this workflow for each change:
 
 1. Create a branch.
 2. Use signed Conventional Commits.
 3. Use `gh` to open a GitHub PR.
-4. Do not merge unless the user asks you to merge.
+4. Do not merge unless you get a request to merge.
 
 Get an independent review of changes to scripts or agent behavior. Keep generated outputs
 synchronized with their sources.
