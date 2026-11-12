@@ -71,4 +71,4 @@ For the implementer and the reviewer, do these steps:
 
 Do not assume that native subagent creation gives the `isolation: worktree` behavior of Claude. A worktree separates files. A worktree is not a security boundary.
 
-If the host cannot reliably assign the working directory of a subagent, launch a separate Codex session in that worktree. Do not let parallel agents write in the main checkout. In each worktree, run the private environment setup of the project. Do not change shared Git hooks.
+If the host cannot reliably assign the working directory of a subagent, launch a separate Codex session in that worktree. In this case, do not let parallel agents write in the main checkout. In each worktree, run the private environment setup of the project. Do not change shared Git hooks.

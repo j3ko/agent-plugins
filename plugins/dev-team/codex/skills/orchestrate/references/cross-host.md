@@ -44,7 +44,7 @@ This procedure also works when the destination has no dev-team plugin installed.
 3. In the handoff, also save the role prompt, relevant context, the spec and the report requirements.
 4. Include the exact commands for setup, checks, signing, branches and PRs.
 
-Destination roles must obey these commands. This also applies when the destination host does not automatically find the instruction files of the caller.
+Destination roles must obey the project instructions, the delegation contract and these commands. This also applies when the destination host does not automatically find the instruction files of the caller.
 
 ### 5. Resolve the permissions
 
@@ -130,7 +130,7 @@ An externally assigned worktree gives isolation for these CLI launches. Do not a
 5. If the model or effort changes, use a new session.
 6. Do not resume an unrelated latest session.
 
-A bare detached process is not sufficient, because the orchestrator must monitor and cancel the process.
+A bare detached process is not sufficient, because the orchestrator must be able to monitor and cancel the process.
 
 ### Collect the report
 
