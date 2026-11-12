@@ -1,6 +1,6 @@
 # Agent Plugins
 
-Reusable skills and development workflows for Claude Code and Codex.
+This repository contains reusable skills and development workflows for Claude Code and Codex.
 
 ## Installation
 
@@ -11,53 +11,64 @@ claude plugin marketplace add j3ko/agent-plugins
 claude plugin install dev-team@j3ko-agents --scope project
 ```
 
-Enable automatic updates in `/plugin` → Marketplaces → j3ko-agents → Enable auto-update.
+To enable automatic updates, go to `/plugin` → Marketplaces → j3ko-agents → Enable auto-update.
 
 ### Codex CLI
 
-Requires Python 3.11 or newer.
+The Codex plugin requires Python 3.11 or later.
 
 ```sh
 codex plugin marketplace add j3ko/agent-plugins
 codex plugin add dev-team@j3ko-agents
 ```
 
-Review and trust the dev-team startup hook in `/hooks`, then restart Codex.
-The trusted hook installs and updates three personal agent roles in
-`$CODEX_HOME/agents` (default `~/.codex/agents`), preserving local edits.
-Codex checks for plugin updates at startup. Review and renew hook trust when
-Codex requests it after an update, then restart after reported role changes.
+After you add the plugin, do these steps:
+
+1. In `/hooks`, review the dev-team startup hook.
+2. Trust the hook.
+3. Restart Codex.
+
+The trusted hook installs three personal agent roles in `$CODEX_HOME/agents`.
+The default location is `~/.codex/agents`. The hook also updates these roles
+and keeps local edits.
+
+Codex checks for plugin updates when it starts. After an update, Codex can ask
+you to trust the hook again. If it asks, review the hook and trust it again.
+If the hook reports role changes, restart Codex.
 
 ## Skills
 
 | Skill | Description | Claude Code | Codex |
 |---|---|---|---|
 | [orchestrate](shared/dev-team/skills/orchestrate/SKILL.md) | Coordinate implementation, research and independent PR review with dedicated agents. | `/dev-team:orchestrate` | `$orchestrate` |
-| [retro](shared/dev-team/skills/retro/SKILL.md) | Review a coding session and propose improvements to the agent's environment. User-invoked only. | `/dev-team:retro` | `$retro` |
-| [writing-for-agents](shared/dev-team/skills/writing-for-agents/SKILL.md) | Style reference for skills, `AGENTS.md` and `CLAUDE.md`; loaded by retro. | `/dev-team:writing-for-agents` | `$writing-for-agents` |
+| [retro](shared/dev-team/skills/retro/SKILL.md) | Review a coding session and propose improvements to the environment of the agent. Only the user can start it. | `/dev-team:retro` | `$retro` |
+| [writing-for-agents](shared/dev-team/skills/writing-for-agents/SKILL.md) | Style reference for skills, `AGENTS.md` and `CLAUDE.md`. The retro skill loads it. | `/dev-team:writing-for-agents` | `$writing-for-agents` |
 
-`retro` and `writing-for-agents` originate from
+The `retro` and `writing-for-agents` skills come from
 [mattpocock/skills](https://github.com/mattpocock/skills) at
-`4ae2317ddb22b046e26455e4f9c9b3aaaf62212d` under the MIT License; each folder
-includes its `LICENSE`.
+`4ae2317ddb22b046e26455e4f9c9b3aaaf62212d`. They use the MIT License. Each
+folder includes its `LICENSE` file.
 
 ## Runtime agent choices
 
-Tell the orchestrator which host, model and effort to use, for example:
+Tell the orchestrator which host, model and effort to use. For example:
 
 > For this session, implement with Claude Sonnet at medium effort and review
 > with Codex Sol at high effort.
 
-A task-specific request overrides session preferences; remaining fields use the
-orchestration defaults. Choices apply to new agents and do not edit installed
-configuration. Cross-host work uses the destination CLI with an assigned worktree
-and explicit launch arguments. Both CLIs must already be installed and signed in.
-See the [cross-host handoff reference](shared/dev-team/skills/orchestrate/references/cross-host.md)
-for role transfer, project permission settings and validation limits.
+A request for a specific task overrides session preferences. Fields that you do
+not specify use the orchestration defaults. These choices apply to new agents.
+They do not change the installed configuration.
+
+For work on a different host, the orchestrator uses the destination CLI with an
+assigned worktree and explicit launch arguments. Both CLIs must be already
+installed and signed in. For role transfer, project permission settings and
+validation limits, refer to the
+[cross-host handoff reference](shared/dev-team/skills/orchestrate/references/cross-host.md).
 
 ## Validation
 
-Run the same checks as CI with Python 3.11+ and no extra dependencies:
+To run the same checks as CI, use Python 3.11 or later. You do not need other dependencies.
 
 ```sh
 python3 scripts/build.py --check
@@ -66,9 +77,12 @@ python3 -m unittest discover -s tests -v
 ```
 
 The metadata check covers existing `shared/dev-team/skills/*/agents/openai.yaml`
-files. Its supported YAML subset is `interface.display_name`,
-`interface.short_description` (25–64 characters), and optional
-`policy.allow_implicit_invocation` (`true` or `false`). Both interface fields are
-required and use JSON double-quoted strings. Blank lines and whole-line comments
-are allowed. Extend the checker before introducing other metadata fields or YAML
-syntax; it is not a general YAML parser.
+files. It supports only a subset of YAML with these fields:
+
+- `interface.display_name`: Required.
+- `interface.short_description`: Required. Use 25–64 characters.
+- `policy.allow_implicit_invocation`: Optional. Use `true` or `false`.
+
+The two interface fields must use JSON double-quoted strings. Blank lines and
+whole-line comments are permitted. The checker is not a general YAML parser.
+Before you add other metadata fields or YAML syntax, extend the checker.
