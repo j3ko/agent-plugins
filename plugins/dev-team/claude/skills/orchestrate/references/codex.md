@@ -1,19 +1,74 @@
 # Codex adapter
 
-Use custom agents `dev-team-implementer`, `dev-team-researcher` and `dev-team-reviewer`. Invoke this workflow with `$orchestrate` or select its installed plugin skill.
+Use the custom agents `dev-team-implementer`, `dev-team-researcher` and `dev-team-reviewer`. To start this workflow, use `$orchestrate` or select the installed plugin skill.
 
-The plugin's trusted `SessionStart` hook installs and maintains the three role files in `$CODEX_HOME/agents` (default `~/.codex/agents`). Requires Python 3.11+. Review and trust its command through `/hooks`; plugin bundle updates may require renewed trust even when the command is unchanged. The hook runs after roles have loaded: fully restart Codex after it reports installed or updated roles. Opening a new thread in the same process is not sufficient.
+## Role installation
 
-Synchronization uses persistent `PLUGIN_DATA` hashes, shared across plugin cache versions. It replaces only files identical to the last managed version, adopts already identical files, and preserves differing unmanaged or locally edited files with a warning. To resume management of a conflict, inspect and move or remove that personal role file, then restart. Invalid state preserves existing differing files. Missing `PLUGIN_DATA` or unsafe symlink paths prevent synchronization. Older package versions never replace roles managed by a newer release. Package maintainers must bump the plugin version when roles change.
+The trusted `SessionStart` hook of the plugin installs the three role files in `$CODEX_HOME/agents`. The default location is `~/.codex/agents`. The hook also keeps these files up to date. The hook requires Python 3.11 or later.
 
-Project `.codex/agents/` overrides take precedence over these personal roles and are never changed by the hook. Uninstalling the plugin leaves personal role copies behind; remove the three `dev-team-*.toml` files yourself if desired. No config, auth or permissions settings are modified.
+1. Use `/hooks` to review the hook command.
+2. Use `/hooks` to trust the hook command.
+3. After a plugin bundle update, trust the hook again if Codex requests it. Codex can request this when the command does not change.
+4. If the hook reports installed or updated roles, fully restart Codex.
 
-Manual fallback: from a clone of this repository, run `python3 scripts/install_codex.py --project /path/to/project --agents-only` when the skill is already installed as a plugin. Omit `--agents-only` to install both roles and skill. This installs project overrides; review differing files before using `--replace`. Never change project configuration without the user's authorization. The fallback's project copies require manually rerunning the installer after updates.
+The hook runs after Codex loads the roles. Thus, a new thread in the same process is not sufficient.
 
-The generated roles leave model and reasoning effort unset so the orchestrator can pass its resolved choices at spawn time. Codex custom role settings take precedence over explicit spawn values: an older loaded role or a locally maintained override that pins either field can prevent runtime selection. Inspect conflicts and fully restart after managed role updates; preserve owner edits. Report an incompatible pin before dispatch. Without orchestration, these roles use the host's subagent defaults or inherit the parent.
+## Synchronization
 
-Keep Luna research bounded and require source-linked evidence. Native subagents inherit the parent's sandbox and approvals. A read-only role instruction does not create an enforced read-only sandbox. Separate CLI sessions use the project-authorized settings described in the cross-host reference.
+Synchronization uses persistent hashes in `PLUGIN_DATA`. All plugin cache versions use the same hashes. The hook applies these rules:
 
-For implementer and reviewer, create distinct git worktrees before spawning and pass each absolute worktree path in its handoff. Do not assume native subagent creation supplies Claude's `isolation: worktree` behavior. Require commands and edits to stay inside the assigned worktree. A worktree separates files but is not a security boundary.
+- It replaces a role file only if the file is identical to the last managed version.
+- It adopts a file that is already identical.
+- It keeps an unmanaged or locally edited file that is different, and shows a warning.
+- If the state is not valid, it keeps existing files that are different.
+- If `PLUGIN_DATA` is missing, it does not synchronize.
+- If a path contains an unsafe symbolic link, it does not synchronize.
+- An older package version never replaces roles that a newer release manages.
 
-If the host cannot assign a subagent's working directory reliably, use a separate Codex session launched in that worktree instead of parallel writes in the main checkout. Apply the project's private environment setup in each worktree and leave shared git hooks alone.
+To manage a conflicting file again, do these steps:
+
+1. Inspect the personal role file.
+2. Move or remove the file.
+3. Restart Codex.
+
+When roles change, package maintainers must increase the plugin version.
+
+Project overrides in `.codex/agents/` have priority over these personal roles. The hook never changes project overrides. If you uninstall the plugin, the personal role copies stay. To remove them, delete the three `dev-team-*.toml` files. The hook does not change configuration, authentication or permission settings.
+
+## Manual fallback
+
+Use the installer from a clone of this repository:
+
+- If the skill is already installed as a plugin, run `python3 scripts/install_codex.py --project /path/to/project --agents-only`.
+- To install the roles and the skill, remove `--agents-only` from the command.
+
+The installer writes project overrides. Before you use `--replace`, review the files that are different. Never change the project configuration without authorization from the user. After an update, run the installer again to update the project copies.
+
+## Model and effort
+
+The generated roles do not set a model or reasoning effort. Thus, the orchestrator can pass its resolved choices when it spawns an agent.
+
+Codex custom role settings have priority over explicit spawn values. If an older loaded role or a local override sets either field, runtime selection can fail. Do these steps:
+
+1. Inspect conflicts.
+2. After managed role updates, fully restart Codex.
+3. Keep edits from the owner.
+4. Before dispatch, report a pinned value that is not compatible.
+
+Without orchestration, these roles use the subagent defaults of the host or inherit values from the parent.
+
+## Permissions and worktrees
+
+Keep Luna research bounded. Require evidence with links to the sources.
+
+Native subagents inherit the sandbox and approvals of the parent. A read-only role instruction does not create an enforced read-only sandbox. Separate CLI sessions use the project-authorized settings from the cross-host reference.
+
+For the implementer and the reviewer, do these steps:
+
+1. Before you spawn the agents, create a different Git worktree for each agent.
+2. Pass the absolute worktree path in each handoff.
+3. Tell each agent to keep its commands and edits inside its assigned worktree.
+
+Do not assume that native subagent creation gives the `isolation: worktree` behavior of Claude. A worktree separates files. A worktree is not a security boundary.
+
+If the host cannot reliably assign the working directory of a subagent, launch a separate Codex session in that worktree. In this case, do not let parallel agents write in the main checkout. In each worktree, run the private environment setup of the project. Do not change shared Git hooks.
