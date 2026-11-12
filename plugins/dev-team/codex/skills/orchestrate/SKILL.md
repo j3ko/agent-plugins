@@ -5,53 +5,70 @@ description: Coordinate scoped software implementation, verified research and in
 
 # Coordinate the dev team
 
-Keep design decisions and the conversation with the owner in the main session. Delegate bounded detail to an implementer, researcher or reviewer. Handle small mechanical edits directly; a fresh agent is not free.
+Keep design decisions in the main session. Keep the conversation with the owner in the main session. Delegate bounded detail work to an implementer, a researcher or a reviewer. Do small mechanical edits yourself, because each new agent has a cost.
 
-Before delegating, read the project's instructions and delegation contract. Use its exact setup, check, signing, tracker and PR commands. Read only the decisions and issues the task touches. Existing user authorization carries forward; do not add a new approval gate where the user already authorized the work.
+Before you delegate, read the project instructions and the delegation contract. Use the exact project commands for setup, checks, signing, the tracker and PRs. Read only the decisions and issues that the task touches. Existing authorization from the user stays valid. If the user already authorized the work, do not add a new approval step.
 
-Read the reference for the host you are actually using:
+Read the reference for the host that you use:
 
 - [Claude Code](references/claude.md): role names, worktree isolation and model overrides.
 - [Codex](references/codex.md): role installation, explicit worktree assignment and inherited permissions.
 
 ## Runtime selection
 
-Resolve host, model and effort for each role before launching: the owner's task-specific choice, then their session preference, then the defaults below. An unspecified host is the current host. Model names and effort levels belong to the selected host; a host change discards incompatible model preferences. Ask for an alternative if an explicit selection is unavailable.
+Before you launch a role, resolve the host, model and effort for that role. Use this order of precedence:
+
+1. The choice of the owner for this task.
+2. The session preference of the owner.
+3. The defaults in the table below.
+
+If the owner does not specify a host, use the current host. Model names and effort levels are specific to the selected host. If the host changes, discard model preferences that are not compatible with the new host. If an explicit selection is not available, ask the owner for an alternative.
 
 | Host | Implementer | Researcher | Reviewer |
 |---|---|---|---|
 | Claude | sonnet / medium | sonnet / medium | opus / high |
 | Codex | gpt-6.1-sol / medium | gpt-6-luna / high | gpt-6.1-sol / high |
 
-For example: "For this session, research with Codex Luna and implement with Claude Sonnet. For this task, review with Codex Sol at high effort." Keep session preferences in the conversation; persist them only when asked. State the resolved host/model/effort before dispatch and put them in the handoff.
+Example: "For this session, research with Codex Luna and implement with Claude Sonnet. For this task, review with Codex Sol at high effort."
 
-For native agents, pass model and effort through the host's spawn controls. Use a fresh agent when selections change. Codex model overrides require a fresh context rather than a full-history fork. If loaded role settings or the host's tool interface prevent the requested selection, report the limit before dispatch instead of silently inheriting another model.
+Keep session preferences in the conversation. Save them persistently only if the owner asks. Before dispatch, state the resolved host, model and effort. Put these values in the handoff.
 
-For another host, or a separate CLI session, read [cross-host handoffs](references/cross-host.md): role transfer, working directory, runtime arguments, project permission settings and report collection.
+For native agents, use the spawn controls of the host to pass the model and effort. If the selections change, use a new agent. A Codex model override needs a new context, not a full-history fork. Loaded role settings or the tool interface of the host can prevent the requested selection. If this occurs, report the limit before dispatch. Do not silently inherit a different model.
+
+For a different host or a separate CLI session, read [cross-host handoffs](references/cross-host.md). This reference gives role transfer, the working directory, runtime arguments, project permission settings and report collection.
 
 ## Handoffs
 
-Settle material design choices before implementation and record durable choices where the project keeps decisions. Give each agent one concern. Use the [spec template](references/spec-template.md) for implementation: exact files, relevant decisions, scope, acceptance checks, branch, PR title and issue.
+Before implementation starts, settle material design choices. Record durable choices where the project keeps its decisions. Give each agent one concern.
 
-Use the researcher to verify external facts before relying on them. It reports evidence and proposed documentation wording without making edits or external writes.
+For implementation, use the [spec template](references/spec-template.md). Include the exact files, relevant decisions, scope, acceptance checks, branch, PR title and issue.
 
-Before launching an implementer, establish that the authorized workflow can commit, sign where required, push and open a PR. If a necessary permission is missing, keep the concrete work reviewable and report what needs authorization. Do not start a second agent as a way around a refusal.
+Before you rely on an external fact, use the researcher to verify it. The researcher reports evidence and proposed documentation wording. It does not edit files or write to external services.
+
+Before you launch an implementer, make sure that the authorized workflow can commit, push and open a PR. If the project requires signed commits, make sure that the workflow can sign. If a necessary permission is missing, keep the concrete work reviewable. Report the permission that needs authorization. Do not start a second agent to get around a refusal.
 
 ## Review loop
 
-1. The implementer opens or updates its scoped PR and reports. Check CI in the main session.
-2. Obtain an independent reviewer for code, scripts or CI changes. Docs-only and config-only changes can skip review unless the project requires it.
-3. Give the reviewer the PR, branch/head and spec. It uses a separate worktree, runs required checks and reports verified findings.
-4. Send actionable findings back as a small fix-up spec on the same PR branch. Fix a few mechanical edits directly when that is cheaper. Re-review when the fix changes logic.
-5. Hand the PR to the owner with validation, relevant findings and remaining owner-only actions. Never merge without explicit authorization.
+1. Wait for the implementer to open or update its scoped PR and send its report.
+2. Check CI in the main session.
+3. For changes to code, scripts or CI, get an independent reviewer. Changes to only docs or only configuration do not need review, unless the project requires it.
+4. Give the reviewer the PR, the branch or head commit, and the spec. The reviewer uses a separate worktree, runs the required checks and reports verified findings.
+5. Send actionable findings back as a small fix-up spec for the same PR branch.
+6. If a few mechanical edits are cheaper to do yourself, do them directly.
+7. If the fix changes logic, get a new review.
+8. Give the PR to the owner. Include the validation, relevant findings and remaining owner-only actions.
+9. Never merge without explicit authorization.
 
-If publication is blocked, leave the required PR review pending. Local inspection may continue, but it does not replace review of the published PR head.
+If publication is blocked, keep the required PR review pending. You can continue local inspection. Local inspection does not replace a review of the published PR head.
 
-When an agent reports blocked, inspect the exact refusal and leave its worktree available. Do not retry the blocked action under another tool or permission mode. Continue unaffected work. Missing design decisions go back to the owner; routine implementation details stay with the implementer.
+If an agent reports that it is blocked, inspect the exact refusal. Keep the worktree of the agent available. Do not try the blocked action again with a different tool or permission mode. Continue the work that the block does not affect. Send missing design decisions back to the owner. Routine implementation details stay with the implementer.
 
 ## Cost and scope
 
-- Parallelize independent work only after assigning non-overlapping files and worktrees. Do not delegate during planning/discussion unless it is requested or required by the applicable project workflow.
-- Keep handoffs, source reads and reports concise. Before resuming an agent, inspect its existing work; a small remaining edit can be completed directly.
-- Apply authorization and owner-only restrictions to every agent. Tool availability and credentials do not authorize external messages, settings changes or deployments.
-- Put out-of-scope ideas in the project's proposal tracker when it has one. Keep project-specific commands and policies in its own instructions, not this shared plugin.
+- Run independent work in parallel only after you assign files and worktrees that do not overlap.
+- During planning or discussion, do not delegate, unless the user requests it or the project workflow requires it.
+- Keep handoffs, source reads and reports concise.
+- Before you resume an agent, inspect its existing work. If only a small edit remains, do it yourself.
+- Apply authorization and owner-only restrictions to every agent. Available tools and credentials do not authorize external messages, settings changes or deployments.
+- If the project has a proposal tracker, put out-of-scope ideas there.
+- Keep project-specific commands and policies in the project instructions. Do not put them in this shared plugin.

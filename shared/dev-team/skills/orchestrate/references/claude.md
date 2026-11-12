@@ -1,9 +1,11 @@
 # Claude Code adapter
 
-Use plugin-scoped agents `dev-team:implementer`, `dev-team:researcher` and `dev-team:reviewer`. Their native metadata supplies worktree isolation for implementer/reviewer and excludes direct editing tools for researcher.
+Use the plugin-scoped agents `dev-team:implementer`, `dev-team:researcher` and `dev-team:reviewer`. The native metadata of these agents gives worktree isolation to the implementer and the reviewer. The metadata also removes the direct editing tools from the researcher.
 
-Load this workflow as `/dev-team:orchestrate`. Resolve choices using the skill's runtime selection rules. Native Agent calls accept model aliases and, on supported versions, effort overrides. Pass both explicitly; these override role frontmatter. Verify the host exposes those controls before dispatch. Use the CLI handoff reference for a full model ID or a separate session. A mechanical task may use a Haiku override when available and appropriate.
+Load this workflow as `/dev-team:orchestrate`. Use the runtime selection rules of the skill to resolve choices.
 
-Pass only the spec and relevant project context. Worktree isolation starts from the project's default branch, so each agent must check out the branch named in its handoff. A fix-up targets the existing PR branch.
+Native Agent calls accept model aliases. On supported versions, they also accept effort overrides. Pass both values explicitly. These values override the role frontmatter. Before dispatch, make sure that the host shows these controls. For a full model ID or a separate session, use the CLI handoff reference. For a mechanical task, you can use a Haiku override if it is available and applicable.
 
-Editing-tool exclusions do not make shell commands read-only. Keep the researcher's no-write instructions and the actual session permissions in force.
+Pass only the spec and the relevant project context. Worktree isolation starts from the default branch of the project. Thus, each agent must select the branch that its handoff names. A fix-up uses the existing PR branch.
+
+The exclusion of editing tools does not make shell commands read-only. Keep the no-write instructions of the researcher in force. Also keep the actual session permissions in force.
