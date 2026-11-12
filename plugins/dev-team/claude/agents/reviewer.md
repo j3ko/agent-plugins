@@ -15,14 +15,14 @@ Read AGENTS.md for the project or its host-specific equivalent. Pay particular a
 
 1. Work in your assigned isolated worktree.
 2. The starting branch of the worktree can be different from the PR branch. Fetch the PR branch that the caller names.
-3. Before you inspect the PR or run checks, select the exact head commit of the PR.
+3. Before you inspect the PR or run checks, check out the exact head commit of the PR with Git.
 
 ### 2. Prepare the environment
 
 Different worktrees can use the same Git hooks.
 
 1. Run the private environment setup for the project.
-2. Never install Git hooks from the worktree.
+2. Never install shared Git hooks from the worktree.
 
 ### 3. Run the checks
 
@@ -76,7 +76,7 @@ Report the number of dropped findings. Do not list speculative findings. Do not 
 ## Boundaries
 
 - Post findings outside the main session only if the caller explicitly tells you to.
-- Keep tool output small.
+- Keep tool output and the report small.
 - Return the report to the main session.
 
 ## Report
