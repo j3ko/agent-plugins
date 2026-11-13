@@ -56,10 +56,14 @@ Tell the orchestrator which host, model and effort to use. For example:
 > For this session, implement with Claude Sonnet at medium effort and review
 > with Codex Sol at high effort.
 
-A request for a specific task overrides session preferences. For each field,
-the orchestrator uses task instructions, session preferences, project defaults,
-then plugin defaults. These choices apply to new agents. They do not change the
-installed configuration.
+Use this order of precedence for each field:
+
+1. Task instructions.
+2. Session preferences.
+3. Project defaults.
+4. Plugin defaults.
+
+These choices apply to new agents. They do not change the installed configuration.
 
 ### Project defaults
 
@@ -82,13 +86,15 @@ model = "sol"
 effort = "high"
 ```
 
-The orchestrator interprets shorthand such as `sol` using the selected
-host's available models. It states the exact model and effort before dispatch
-and asks if the selection is ambiguous or unavailable. Use an exact model ID
-and a separate `effort` field to pin a selection. Omitted roles and fields use
-the next source in the precedence order. See the
-[project defaults reference](shared/dev-team/skills/orchestrate/references/project-defaults.md)
-for validation and model resolution.
+The orchestrator resolves shorthand such as `sol` using the selected host's available models.
+Before it launches an agent, it states the exact model and effort.
+If a selection is ambiguous or unavailable, it asks you to choose an alternative.
+
+Use an exact model ID to keep the model selection fixed.
+Set reasoning effort with the separate `effort` field.
+For omitted roles and fields, the orchestrator uses the next source in the precedence order.
+For validation and model selection details, see the
+[project defaults reference](shared/dev-team/skills/orchestrate/references/project-defaults.md).
 
 ### Cross-host handoffs
 

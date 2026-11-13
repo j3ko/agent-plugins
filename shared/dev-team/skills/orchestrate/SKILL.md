@@ -16,14 +16,14 @@ Read the reference for the host that you use:
 
 ## Runtime selection
 
-Before you launch a role, check for `.dev-team.toml` at the project root. If it exists, read [project defaults](references/project-defaults.md) and the file. Resolve the host, model and effort for that role. Use this order of precedence for each field:
+Before you launch a role, check the project root for `.dev-team.toml`. If the file exists, read the [project defaults reference](references/project-defaults.md) and the file. Resolve the host, model and effort for that role. Use this order of precedence for each field:
 
 1. The choice of the owner for this task.
 2. The session preference of the owner.
 3. The project defaults in `.dev-team.toml`.
 4. The defaults in the table below.
 
-If no source specifies a host, use the current host. Model names and effort levels are specific to the selected host. If the host changes, discard lower-priority model and effort preferences that are not compatible with the new host. If an explicit selection is not available, ask the owner for an alternative.
+If no source specifies a host, use the current host. Model names and effort levels are specific to the selected host. If the host changes, discard incompatible model and effort preferences from sources with lower priority. If an explicit selection is not available, ask the owner for an alternative.
 
 | Host | Implementer | Researcher | Reviewer |
 |---|---|---|---|

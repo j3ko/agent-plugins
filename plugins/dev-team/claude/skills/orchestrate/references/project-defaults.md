@@ -1,27 +1,59 @@
 # Project role defaults
 
-Read `.dev-team.toml` from the project root before resolving runtime selections. In a Git project, use the top-level directory of the working tree, including an assigned worktree. Otherwise, use the project root identified by the project instructions. Read only that root file. If it is absent, continue with session preferences and plugin defaults.
+Before you select runtime settings, read `.dev-team.toml` at the project root.
+For Git projects, use the top-level directory of the current working tree.
+This includes an assigned worktree.
+For other projects, use the root that the project instructions identify.
+Read only the file at that root.
+If the file is absent, use the other sources in the precedence order.
 
-The owner can commit this file to share defaults across Codex and Claude Code. Treat it as selection data. It does not authorize permission changes, authentication changes, commands or external actions. Project behavior and commands belong in `AGENTS.md` or its host-specific equivalent.
+The owner can commit this file to share defaults between Codex and Claude Code.
+Treat the file as selection data.
+It does not authorize changes to permissions or authentication.
+It does not authorize commands or external actions.
+Keep project behavior and commands in `AGENTS.md` or its host-specific equivalent.
 
 ## Fields
 
-The optional tables are `[roles.implementer]`, `[roles.researcher]` and `[roles.reviewer]`. Each table accepts these optional, nonempty string fields:
+The optional tables are `[roles.implementer]`, `[roles.researcher]` and `[roles.reviewer]`.
+Each table accepts these optional fields.
+Use nonempty strings for their values.
 
 | Field | Meaning |
 |---|---|
 | `host` | `codex` or `claude`. If no source sets it, use the current host. |
 | `model` | An exact model ID, a host alias or a natural-language model preference such as `sol`. |
-| `effort` | A reasoning effort supported by the selected host and model. |
+| `effort` | Reasoning effort that the selected host and model support. |
 
-An omitted role or field inherits from the next source in the precedence order in the skill. Check TOML syntax, table names, field names and value types before using the file. Report invalid configuration and ask for a correction before dispatching an affected role. Preserve the file.
+For an omitted role or field, use the next source in the precedence order in the skill.
+Check the TOML syntax, table names, field names and value types before you use the file.
+If the configuration is invalid, report the error and ask the owner to correct it.
+Wait for the correction before you launch an affected role.
+Keep the file unchanged.
 
 ## Resolve shorthand
 
-Interpret model shorthand against the selected host's available model information. Use the host's exposed model catalog, installed documentation or verified official documentation. There is no fixed alias mapping in this plugin. For example, `sol` expresses a Sol model preference; resolve it to a supported model ID before dispatch. An exact model ID stays pinned to that ID.
+Interpret model shorthand using the selected host's available model information.
+Use the host's model catalog, installed documentation or verified official documentation.
+This plugin has no fixed alias mapping.
+For example, `sol` expresses a Sol model preference.
+Resolve it to a supported model ID before you launch the role.
+If the owner specifies an exact model ID, use that ID.
 
-Resolve `model` and `effort` independently using the field precedence in the skill. Set project reasoning effort with the `effort` field. Apply host compatibility rules after selecting the host.
+Resolve `model` and `effort` separately using the field precedence in the skill.
+Set project reasoning effort with the `effort` field.
+After you select the host, apply its compatibility rules.
 
-If more than one available model matches, or the preference cannot be verified as available, ask the owner to choose before dispatch. Do not silently substitute a different model. State the exact resolved host, model and effort, and record them in the handoff. Shorthand can resolve differently as the host's models change; use an exact model ID when the project needs a stable selection.
+If more than one available model matches the preference, ask the owner to choose.
+If you cannot verify model availability, ask the owner for an alternative.
+Resolve these questions before you launch the role.
+Use only the selected model.
 
-These defaults apply when the orchestrator launches new agents. They do not change installed role files or host configuration. Existing agents keep their launch selections.
+Before you launch the role, state the exact host, model and effort.
+Record these values in the handoff.
+As the host's models change, shorthand can select a different model.
+For a stable selection, use an exact model ID.
+
+These defaults apply to new agents that the orchestrator launches.
+They do not change installed role files or host configuration.
+Existing agents keep the settings from their launch.
