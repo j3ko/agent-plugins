@@ -73,20 +73,22 @@ effort = "medium"
 
 [roles.researcher]
 host = "codex"
-model = "luna high"
+model = "luna"
+effort = "high"
 
 [roles.reviewer]
 host = "codex"
-model = "sol high"
+model = "sol"
+effort = "high"
 ```
 
-The orchestrator interprets shorthand such as `sol high` using the selected
+The orchestrator interprets shorthand such as `sol` using the selected
 host's available models. It states the exact model and effort before dispatch
 and asks if the selection is ambiguous or unavailable. Use an exact model ID
 and a separate `effort` field to pin a selection. Omitted roles and fields use
 the next source in the precedence order. See the
 [project defaults reference](shared/dev-team/skills/orchestrate/references/project-defaults.md)
-for validation and shorthand precedence.
+for validation and model resolution.
 
 ### Cross-host handoffs
 
