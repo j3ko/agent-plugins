@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/j3ko/agent-plugins/compare/v0.4.4...v0.5.0) (2026-11-13)
+
+
+### Features
+
+* **orchestrate:** support project role defaults and model shorthand ([#20](https://github.com/j3ko/agent-plugins/issues/20)) ([b2a475e](https://github.com/j3ko/agent-plugins/commit/b2a475e17f617c43d28f63c2ef566a67513c4c45))
+
 ## [0.4.4](https://github.com/j3ko/agent-plugins/compare/v0.4.3...v0.4.4) (2026-11-12)
 
 
