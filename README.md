@@ -56,9 +56,47 @@ Tell the orchestrator which host, model and effort to use. For example:
 > For this session, implement with Claude Sonnet at medium effort and review
 > with Codex Sol at high effort.
 
-A request for a specific task overrides session preferences. Fields that you do
-not specify use the orchestration defaults. These choices apply to new agents.
-They do not change the installed configuration.
+Use this order of precedence for each field:
+
+1. Task instructions.
+2. Session preferences.
+3. Project defaults.
+4. Plugin defaults.
+
+These choices apply to new agents. They do not change the installed configuration.
+
+### Project defaults
+
+Commit `.dev-team.toml` at the project root to share role defaults:
+
+```toml
+[roles.implementer]
+host = "claude"
+model = "sonnet"
+effort = "medium"
+
+[roles.researcher]
+host = "codex"
+model = "luna"
+effort = "high"
+
+[roles.reviewer]
+host = "codex"
+model = "sol"
+effort = "high"
+```
+
+The orchestrator resolves shorthand such as `sol` using the selected host's available models.
+Before it launches an agent, it states the exact model and effort.
+If a selection is ambiguous or unavailable, it asks you to choose an alternative.
+
+Use an exact model ID to keep the model selection fixed.
+Set reasoning effort with the separate `effort` field.
+For omitted roles and fields, the orchestrator uses the next source in the precedence order.
+For validation and model selection details, see the
+[project defaults reference](shared/dev-team/skills/orchestrate/references/project-defaults.md).
+
+### Cross-host handoffs
 
 For work on a different host, the orchestrator uses the destination CLI with an
 assigned worktree and explicit launch arguments. Both CLIs must be already
