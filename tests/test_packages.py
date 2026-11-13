@@ -72,7 +72,7 @@ class PackageTests(unittest.TestCase):
             self.assertFalse(any(p.is_symlink() for p in copied.rglob('*')))
             skill = copied / 'skills/orchestrate/SKILL.md'
             self.assertEqual(skill.read_bytes(), (self.root / 'shared/dev-team/skills/orchestrate/SKILL.md').read_bytes())
-            for reference in ('claude.md', 'codex.md', 'cross-host.md', 'spec-template.md'):
+            for reference in ('claude.md', 'codex.md', 'cross-host.md', 'project-defaults.md', 'spec-template.md'):
                 self.assertTrue((skill.parent / 'references' / reference).is_file())
                 self.assertEqual((skill.parent / 'references' / reference).read_bytes(),
                                  (self.root / 'shared/dev-team/skills/orchestrate/references' / reference).read_bytes())
