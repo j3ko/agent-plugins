@@ -45,19 +45,6 @@ If the hook reports role changes, restart Codex.
 | [retro](shared/dev-team/skills/retro/SKILL.md) | Review a coding session and propose improvements to the environment of the agent. Only the user can start it. | `/dev-team:retro` | `$retro` |
 | [writing-for-agents](shared/dev-team/skills/writing-for-agents/SKILL.md) | Style reference for skills, `AGENTS.md` and `CLAUDE.md`. The retro skill loads it. | `/dev-team:writing-for-agents` | `$writing-for-agents` |
 
-The `retro` and `writing-for-agents` skills come from
-[mattpocock/skills](https://github.com/mattpocock/skills) at
-`4ae2317ddb22b046e26455e4f9c9b3aaaf62212d`. They use the MIT License. Each
-folder includes its `LICENSE` file.
-
-The `handoff` skill is inspired by
-[Matt Pocock's handoff skill](https://github.com/mattpocock/skills/blob/main/skills/productivity/handoff/SKILL.md).
-It saves continuation notes in the project's issue tracker and lasting knowledge
-or code through the project's version control workflow. If publication is not
-available, it saves a private file in the OS temporary directory. It verifies the
-saved context before it cleans up session-owned resources. The final response
-includes saved locations and a resume prompt for the next agent.
-
 ## Runtime agent choices
 
 Tell the orchestrator which host, model and effort to use. For example:
