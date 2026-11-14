@@ -40,14 +40,10 @@ If the hook reports role changes, restart Codex.
 
 | Skill | Description | Claude Code | Codex |
 |---|---|---|---|
+| [handoff](shared/dev-team/skills/handoff/SKILL.md) | Save task context in issues, documentation PRs or an OS temp file, then clean up session resources. | `/dev-team:handoff` | `$handoff` |
 | [orchestrate](shared/dev-team/skills/orchestrate/SKILL.md) | Coordinate implementation, research and independent PR review with dedicated agents. | `/dev-team:orchestrate` | `$orchestrate` |
 | [retro](shared/dev-team/skills/retro/SKILL.md) | Review a coding session and propose improvements to the environment of the agent. Only the user can start it. | `/dev-team:retro` | `$retro` |
 | [writing-for-agents](shared/dev-team/skills/writing-for-agents/SKILL.md) | Style reference for skills, `AGENTS.md` and `CLAUDE.md`. The retro skill loads it. | `/dev-team:writing-for-agents` | `$writing-for-agents` |
-
-The `retro` and `writing-for-agents` skills come from
-[mattpocock/skills](https://github.com/mattpocock/skills) at
-`4ae2317ddb22b046e26455e4f9c9b3aaaf62212d`. They use the MIT License. Each
-folder includes its `LICENSE` file.
 
 ## Runtime agent choices
 
