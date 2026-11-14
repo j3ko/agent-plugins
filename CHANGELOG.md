@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/j3ko/agent-plugins/compare/v0.5.0...v0.6.0) (2026-11-14)
+
+
+### Features
+
+* **handoff:** persist session context for agent switches ([#23](https://github.com/j3ko/agent-plugins/issues/23)) ([27c970e](https://github.com/j3ko/agent-plugins/commit/27c970ec8e7ccfe383bf1e439d9ffe10f595b760))
+
 ## [0.5.0](https://github.com/j3ko/agent-plugins/compare/v0.4.4...v0.5.0) (2026-11-13)
 
 
