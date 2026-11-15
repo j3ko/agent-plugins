@@ -89,7 +89,7 @@ To inspect the settings and the command without a launch, add `--dry-run`. A dry
 
 Pass only the permission file that the project authorizes. The launcher reads no other permission source.
 
-- Codex: a TOML file. The launcher reads only the `sandbox_mode` and `approval_policy` fields and passes them as invocation overrides. The summary lists the other keys as `ignored_keys`.
+- Codex: a TOML file. The launcher reads only the `sandbox_mode` and `approval_policy` fields and passes them as invocation overrides. The summary lists the other keys as `ignored_keys`. With Codex CLI 0.167.0, a `codex exec` session used the `sandbox_mode` of the file. But it recorded the approval policy `never` when the file gave `on-request`. Thus, do not rely on approval requests in a launched Codex role.
 - Claude: a settings JSON file. The launcher passes its path with `--settings`.
 
 If the project authorizes no file, omit `--permissions`. The configured policy of the destination then stays in effect.
