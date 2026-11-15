@@ -4,9 +4,11 @@ import json
 import os
 from pathlib import Path
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -21,6 +23,9 @@ args = sys.argv[1:]
 Path(os.environ["FAKE_RECORD"]).write_text(json.dumps(
     {{"name": name, "args": args, "cwd": os.getcwd(), "stdin": sys.stdin.read()}}))
 mode = os.environ.get("FAKE_MODE", "ok")
+if mode == "sleep":
+    import time
+    time.sleep(60)
 if mode == "exit3":
     print("boom", file=sys.stderr)
     raise SystemExit(3)
@@ -146,16 +151,19 @@ class LaunchRoleTests(unittest.TestCase):
         self.assertEqual(summary['status'], 'collected')
         self.assertEqual(summary['reported_models'], ['claude-test-model'])
 
-    def test_role_body_is_identical_from_both_packages(self):
-        for package in ('claude', 'codex'):
-            with self.subTest(package=package):
-                output = self.base / f'dry-{package}'
-                self.launch(package, 'claude', '--dry-run', '--output-dir', output, role='reviewer')
-                self.assertEqual((output / 'role_prompt.md').read_text(), self.shared_role('reviewer'))
+    def test_dry_run_prints_the_command_and_writes_nothing(self):
+        result = self.launch('claude', 'codex', '--dry-run')
+        summary = json.loads(result.stdout)
+        self.assertEqual(summary['status'], 'dry-run')
+        self.assertEqual(summary['command'][:2], ['codex', 'exec'])
         self.assertFalse(self.record.exists())
+        self.assertFalse(self.output.exists())
+        # The same output directory stays usable for the real launch.
+        self.launch('claude', 'codex')
 
     def test_claude_researcher_keeps_editing_tool_exclusions(self):
         self.launch('claude', 'claude', role='researcher')
+        self.assertEqual((self.output / 'role_prompt.md').read_text(), self.shared_role('researcher'))
         arguments = self.recorded()['args']
         position = arguments.index('--disallowedTools')
         self.assertEqual(arguments[position + 1:position + 4], ['Edit', 'Write', 'NotebookEdit'])
@@ -206,16 +214,66 @@ class LaunchRoleTests(unittest.TestCase):
         self.assertFalse(self.record.exists())
         self.assertEqual((self.output / 'report.md').read_text(), report)
 
+    def test_input_files_that_cannot_be_read_stop_before_launch(self):
+        self.spec.write_bytes(b'\xff\xfe not UTF-8')
+        result = self.launch('claude', 'codex', expect=2)
+        self.assertNotIn('Traceback', result.stderr)
+        self.spec.write_text('valid spec\n')
+        blocked = self.base / 'a-file'
+        blocked.write_text('not a directory')
+        for output in (blocked, blocked / 'child'):
+            with self.subTest(output=output):
+                result = self.launch('claude', 'codex', '--output-dir', output, expect=2)
+                self.assertNotIn('Traceback', result.stderr)
+        self.assertFalse(self.record.exists())
+        self.assertEqual(blocked.read_text(), 'not a directory')
+
+    def test_links_do_not_get_around_the_path_checks(self):
+        link = self.base / 'link-to-worktree'
+        link.symlink_to(self.worktree, target_is_directory=True)
+        self.launch('claude', 'codex', '--output-dir', link / 'out', expect=2)
+        self.assertFalse((self.worktree / 'out').exists())
+        outside = self.base / 'outside.md'
+        self.output.mkdir()
+        (self.output / 'report.md').symlink_to(outside)
+        result = self.launch('claude', 'codex', expect=2)
+        self.assertIn('earlier dispatch', result.stderr)
+        self.assertFalse(outside.exists())
+        self.assertFalse(self.record.exists())
+
+    def test_termination_signal_reaches_the_destination_cli(self):
+        environment = {**os.environ, 'PATH': f"{self.bin}{os.pathsep}{os.environ['PATH']}",
+                       'FAKE_RECORD': str(self.record), 'FAKE_MODE': 'sleep'}
+        process = subprocess.Popen(
+            [sys.executable, str(self.launcher('claude')), '--role', 'reviewer', '--host', 'codex',
+             '--model', 'm', '--effort', 'high', '--worktree', str(self.worktree), '--spec', str(self.spec),
+             '--output-dir', str(self.output)], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+            text=True, env=environment)
+        self.addCleanup(process.kill)
+        deadline = time.monotonic() + 30
+        while not self.record.exists() and time.monotonic() < deadline:
+            time.sleep(0.05)
+        self.assertTrue(self.record.exists(), 'the stand-in CLI did not start')
+        process.send_signal(signal.SIGTERM)
+        stdout, _ = process.communicate(timeout=30)
+        self.assertEqual(process.returncode, 1)
+        summary = json.loads(stdout)
+        self.assertEqual(summary['status'], 'failed')
+        self.assertEqual(summary['exit_status'], -signal.SIGTERM)
+        self.assertEqual(json.loads((self.output / 'dispatch.json').read_text()), summary)
+
     def test_launcher_works_from_the_manual_codex_installation(self):
         project = self.base / 'project'
         project.mkdir()
         subprocess.run([sys.executable, str(self.root / 'scripts/install_codex.py'), '--project', str(project)],
                        check=True, capture_output=True)
         launcher = project / '.agents/skills/orchestrate/scripts/launch_role.py'
+        environment = {**os.environ, 'PATH': f"{self.bin}{os.pathsep}{os.environ['PATH']}",
+                       'FAKE_RECORD': str(self.record)}
         result = subprocess.run(
             [sys.executable, str(launcher), '--role', 'researcher', '--host', 'codex', '--model', 'm',
              '--effort', 'high', '--worktree', str(self.worktree), '--spec', str(self.spec),
-             '--output-dir', str(self.output), '--dry-run'], capture_output=True, text=True)
+             '--output-dir', str(self.output)], capture_output=True, text=True, env=environment)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual((self.output / 'role_prompt.md').read_text(), self.shared_role('researcher'))
 

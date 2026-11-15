@@ -83,7 +83,7 @@ The launcher does these steps:
 6. It writes `role_prompt.md`, `handoff.md`, the events, `errors.log`, `report.md` and `dispatch.json` to the output directory.
 7. It prints a JSON summary with a `status` and a list of `reasons`.
 
-To inspect the settings and the command without a launch, add `--dry-run`.
+To inspect the settings and the command without a launch, add `--dry-run`. A dry run writes no files.
 
 ### Permission file
 

@@ -160,7 +160,7 @@ def main() -> int:
     parser.add_argument("--output-dir", required=True, help="Absolute dispatch directory outside the worktree")
     parser.add_argument("--permissions", help="Absolute path of the permission file that the project authorizes "
                         "(Codex: TOML with sandbox_mode and approval_policy; Claude: settings JSON)")
-    parser.add_argument("--dry-run", action="store_true", help="Write the handoff and print the command; do not launch")
+    parser.add_argument("--dry-run", action="store_true", help="Print the settings and the command; write no files and do not launch")
     args = parser.parse_args()
 
     try:
@@ -192,20 +192,23 @@ def main() -> int:
         if not spec_text.strip():
             raise UsageError(f"--spec is empty: {spec}")
         permission_args, permission_summary = permission_arguments(args.host, permissions)
-    except UsageError as error:
+        # codex exec cannot select a custom role by name, so its handoff holds the role body.
+        handoff = (f"# Role instructions\n\n{role.rstrip()}\n\n# Handoff\n\n{spec_text}"
+                   if args.host == "codex" else spec_text)
+        if not args.dry_run:
+            output.mkdir(parents=True, exist_ok=True)
+            files["role_prompt"].write_text(role)
+            files["handoff"].write_text(handoff)
+    except (UsageError, OSError, UnicodeDecodeError) as error:
+        # No launch occurred. An unreadable input file or output directory is a usage error too.
         print(f"launch_role: {error}", file=sys.stderr)
         return 2
 
-    output.mkdir(parents=True, exist_ok=True)
-    files["role_prompt"].write_text(role)
     if args.host == "codex":
-        # codex exec cannot select a custom role by name, so the handoff holds the role body.
-        files["handoff"].write_text(f"# Role instructions\n\n{role.rstrip()}\n\n# Handoff\n\n{spec_text}")
         command = ["codex", *permission_args, "exec", "-C", str(worktree), "--model", model,
                    "-c", f"model_reasoning_effort={json.dumps(effort)}",
                    "--json", "-o", str(files["report"]), "-"]
     else:
-        files["handoff"].write_text(spec_text)
         command = ["claude", "-p", "--append-system-prompt-file", str(files["role_prompt"]),
                    "--model", model, "--effort", effort, *permission_args]
         if args.role == "researcher":
