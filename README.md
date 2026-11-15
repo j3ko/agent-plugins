@@ -96,7 +96,9 @@ For validation and model selection details, see the
 
 For work on a different host, the orchestrator uses the destination CLI with an
 assigned worktree and explicit launch arguments. Both CLIs must be already
-installed and signed in. For role transfer, project permission settings and
+installed and signed in. The launcher `scripts/launch_role.py` of the orchestrate
+skill builds the handoff, starts the destination CLI and collects the report.
+For role transfer, project permission settings and
 validation limits, refer to the
 [cross-host handoff reference](shared/dev-team/skills/orchestrate/references/cross-host.md).
 

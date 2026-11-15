@@ -29,6 +29,8 @@ A worktree separates files. It does not separate permissions.
 
 ### 3. Transfer the role instructions
 
+The launcher does this step. For a manual launch, do these steps:
+
 1. Copy the role instructions from the installed package of the caller.
 2. Save that exact body as `role_prompt`.
 
@@ -44,6 +46,8 @@ This procedure also works when the destination has no dev-team plugin installed.
 3. In the handoff, also save the role prompt, relevant context, the spec and the report requirements.
 4. Include the exact commands for setup, checks, signing, branches and PRs.
 
+The launcher adds the role prompt. Write all other items in the spec file that you give to the launcher.
+
 Destination roles must obey the project instructions, the delegation contract and these commands. This also applies when the destination host does not automatically find the instruction files of the caller.
 
 ### 5. Resolve the permissions
@@ -56,7 +60,64 @@ A separate process does not inherit the approvals or sandbox of the caller.
 4. If the project did not authorize a suitable policy, keep the work reviewable.
 5. Report the missing authorization.
 
-## Claude to Codex
+## Launch the role
+
+Use the launcher `scripts/launch_role.py` in the directory of the orchestrate skill. It requires Python 3.11 or later. Set `skill_dir` to the absolute path of that directory.
+
+```bash
+python3 "$skill_dir/scripts/launch_role.py" \
+  --role "$role" --host "$host" --model "$model" --effort "$effort" \
+  --worktree "$worktree" --spec "$spec" --output-dir "$dispatch" \
+  --permissions "$permission_config"
+```
+
+All paths must be absolute. Use a new `--output-dir` outside the worktree for each dispatch. The launcher does not replace the files of an earlier dispatch.
+
+The launcher does these steps:
+
+1. It copies the role instructions from its own package.
+2. It builds the handoff from the role instructions and the spec file.
+3. It reads the permission file that `--permissions` names.
+4. It prints the resolved settings and the command to stderr.
+5. It runs the destination CLI in the worktree.
+6. It writes `role_prompt.md`, `handoff.md`, the events, `errors.log`, `report.md` and `dispatch.json` to the output directory.
+7. It prints a JSON summary with a `status` and a list of `reasons`.
+
+To inspect the settings and the command without a launch, add `--dry-run`. A dry run writes no files.
+
+### Permission file
+
+Pass only the permission file that the project authorizes. The launcher reads no other permission source.
+
+- Codex: a TOML file. The launcher reads only the `sandbox_mode` and `approval_policy` fields and passes them as invocation overrides. The summary lists the other keys as `ignored_keys`. With Codex CLI 0.167.0, a `codex exec` session used the `sandbox_mode` of the file. But it recorded the approval policy `never` when the file gave `on-request`. Thus, do not rely on approval requests in a launched Codex role.
+- Claude: a settings JSON file. The launcher passes its path with `--settings`.
+
+If the project authorizes no file, omit `--permissions`. The configured policy of the destination then stays in effect.
+
+The owner can give the host a permission rule for this one command. Do not add or change that rule yourself.
+
+### Exit status
+
+| Exit status | Meaning |
+|---|---|
+| 0 | The launcher collected the report. |
+| 1 | The dispatch failed. The `reasons` field gives the causes. |
+| 2 | The arguments or the input files are not valid. No launch occurred. |
+
+The launcher gives exit status 1 for these conditions:
+
+- The destination CLI did not start, or its exit status was not zero.
+- The report is missing or empty.
+- The Claude output is malformed or is not a success.
+- The Claude output lists permission denials.
+
+Exit status 0 does not show that the work is complete. The launcher does not detect Codex permission denials or blockers that the role reports. Read the report and do the checks in "Verify the result".
+
+## Manual launch
+
+Use the commands below only if the launcher is not available. They are the commands that the launcher runs.
+
+### Claude to Codex
 
 Build `codex_permissions` as a Bash array from the Codex launch settings that the project authorizes. If the array is empty, the configured policy of the destination stays in effect. Keep the role body in `handoff`, because `codex exec` does not select one of our custom roles by name.
 
@@ -68,35 +129,11 @@ codex "${codex_permissions[@]}" exec -C "$worktree" \
 
 Pass model and effort values from the supported host catalog as quoted arguments. Treat all handoff text as data. Supply the handoff text through stdin or a file. Never use shell interpolation or `eval` for it.
 
-The evaluated Codex CLI does not have a general `--config-file` flag. The project can authorize a dedicated permission TOML file. If it does, read the `sandbox_mode` and `approval_policy` fields from that file. Pass these fields as invocation overrides.
-
-The Python 3.11+ example below reads these two fields. It does not replace `CODEX_HOME`, copy authentication or change installed configuration.
-
-```python
-import json
-from pathlib import Path
-import subprocess
-import tomllib
-
-# Absolute paths and resolved model/effort come from the Dispatch section.
-settings = tomllib.loads(Path(permission_config).read_text())
-args = ["codex"]
-for key in ("sandbox_mode", "approval_policy"):
-    if key in settings:
-        if not isinstance(settings[key], str):
-            raise ValueError(f"{key} must be a string")
-        args += ["-c", f"{key}={json.dumps(settings[key])}"]
-args += ["exec", "-C", worktree, "--model", model,
-         "-c", f"model_reasoning_effort={json.dumps(effort)}",
-         "--json", "-o", report, "-"]
-with open(handoff) as source, open(events, "w") as output, open(errors, "w") as error:
-    result = subprocess.run(args, stdin=source, stdout=output, stderr=error)
-raise SystemExit(result.returncode)
-```
+The evaluated Codex CLI does not have a general `--config-file` flag. The project can authorize a dedicated permission TOML file. If it does, read the `sandbox_mode` and `approval_policy` fields from that file. Pass each field as an invocation override in the format `-c key="value"`. Do not replace `CODEX_HOME`, copy authentication or change installed configuration.
 
 Apply the full-access policy of a container only if the project and the owner authorize it. A `bwrap` namespace failure can show that the container cannot run the inner sandbox of Codex. The failure does not show that read-only Codex generally cannot run commands. Report such failures before you change permissions.
 
-## Codex to Claude
+### Codex to Claude
 
 Launch Claude in the assigned worktree. The `--append-system-prompt-file` option transfers the extracted shared role instructions. With this option, the destination does not need an installation of the plugin.
 
@@ -134,7 +171,7 @@ A bare detached process is not sufficient, because the orchestrator must be able
 
 ### Collect the report
 
-Codex writes its final message to `report`. For Claude JSON output, do these steps:
+The launcher does this step. For a manual launch, Codex writes its final message to `report`. For Claude JSON output, do these steps:
 
 1. Make sure that `type == "result"`, `subtype == "success"` and `is_error == false`.
 2. Write the string value of `result` to `report`.
