@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.7.0](https://github.com/j3ko/agent-plugins/compare/v0.6.0...v0.7.0) (2026-11-15)
+
+
+### Features
+
+* **orchestrate:** add a launcher for cross-host roles ([#28](https://github.com/j3ko/agent-plugins/issues/28)) ([e306781](https://github.com/j3ko/agent-plugins/commit/e306781231e30d59be3808f191a8695966d3e4f2))
+* **roles:** apply retrospective rules to the spec template and roles ([#26](https://github.com/j3ko/agent-plugins/issues/26)) ([0987fc1](https://github.com/j3ko/agent-plugins/commit/0987fc147a512b569e6cf7dcbaa3c38608a4b0c6))
+
 ## [0.6.0](https://github.com/j3ko/agent-plugins/compare/v0.5.0...v0.6.0) (2026-11-14)
 
 
