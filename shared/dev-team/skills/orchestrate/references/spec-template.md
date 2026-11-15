@@ -2,6 +2,8 @@
 
 Fill in every section. "None" is a valid answer. A missing section is not valid. Give paths relative to the repository root, because the implementer works in its own worktree.
 
+Under "Decisions already made", write a statement about the behavior of a source, a library or an API only if you ran it. If you did not run it, put the source under "Read". The implementer then finds the behavior.
+
 ```markdown
 ## Dispatch
 - Role: <implementer | researcher | reviewer>
@@ -28,7 +30,10 @@ Fill in every section. "None" is a valid answer. A missing section is not valid.
 
 ## Decisions already made
 - <the choice, and the location of its record if it is durable>
-- (Do not decide these again. If a decision does not agree with reality, stop and report.)
+- (Do not decide these again. If a decision does not agree with the sources, stop and
+  report only if the conflict changes the scope, a public interface or an acceptance
+  check. For all other conflicts, use the reading that agrees with the sources and
+  continue. List that reading under "Deviations from spec" in the report.)
 
 ## Acceptance checks
 - <behavior that must hold, as a test name or as a command and its expected output>
