@@ -32,9 +32,10 @@ Different worktrees can use the same Git hooks.
 3. If either file exists, follow the standards relevant to the change.
 4. If neither file exists at the repository root, continue with the other project instructions.
 5. Implement the change within the scope of the spec.
-6. Resolve routine implementation details yourself.
-7. If the spec conflicts with a recorded design decision, report the conflict to the main session.
-8. If the spec does not resolve a material design choice, report the choice to the main session.
+6. At each milestone, make a local commit. A milestone is a state where the work builds and its tests pass. Section 5 gives the commit rules. If your run stops, a different agent can then continue from the branch.
+7. Resolve routine implementation details yourself.
+8. If the spec conflicts with a recorded design decision, report the conflict to the main session.
+9. If the spec does not resolve a material design choice, report the choice to the main session.
 
 ### 4. Run the checks
 
@@ -55,14 +56,23 @@ Different worktrees can use the same Git hooks.
 7. If a formatter changes files, stage those files again.
 8. Never bypass a Git hook.
 9. Never bypass a commit signing requirement.
+10. You can squash or reorder commits that you did not push. Keep pushed commits as they are.
 
 ### 6. Publish the PR
 
 1. Push the assigned branch.
 2. For a new PR, use the project tool and title format to open the PR.
-3. Include the goal, scope and verification.
-4. If the spec provides an issue-closing line, include that line.
-5. For a fix-up, update only the existing PR.
+3. If the project has a PR template, use it. If not, use these sections in the PR description, in this order:
+   - What changed: the goal and the scope.
+   - Deviations from spec: the same content as that field of your report.
+   - Verification: the checks that you ran and their results.
+   - Review rounds: one line for each fix-up round.
+   - Not verified: the behavior that you did not check.
+   - For the owner: the actions that only the owner can perform.
+4. If a section has no content, write "none".
+5. If the spec provides an issue-closing line, include that line.
+6. For a fix-up, update only the existing PR.
+7. For a fix-up, edit the sections that exist in the PR description. Keep one section for each name. Correct each sentence that the fix made false.
 
 ### 7. Report the result
 
@@ -84,6 +94,7 @@ The main session checks CI.
 - If the project specifies generated files, regenerate those files.
 - If a proposal is outside the spec, include it in the report. Do not include it in the change.
 - Run Git from the root of your own worktree. Do not redirect Git into the main checkout.
+- Put temporary files in a private directory that your run creates. Delete only the files that your run made.
 - Keep tool output and the final report small. Read relevant file sections instead of whole repositories.
 
 ## Report

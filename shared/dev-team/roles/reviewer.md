@@ -34,10 +34,11 @@ Different worktrees can use the same Git hooks.
 6. If either file exists there, apply the standards relevant to the diff.
 7. If neither file exists there, continue with the other review criteria of the project.
 8. Check the correctness of the change.
-9. Check that the change stays within the scope of the spec.
-10. Check that the change agrees with the recorded decisions of the project.
-11. Check that the tests distinguish the new behavior from existing behavior.
-12. Report material limits of your validation.
+9. For a port, run the new function and the real source function on random inputs and compare the results. The cases of the spec are not sufficient alone.
+10. Check that the change stays within the scope of the spec.
+11. Check that the change agrees with the recorded decisions of the project.
+12. Check that the tests distinguish the new behavior from existing behavior.
+13. Report material limits of your validation.
 
 ### 5. Prove a defect
 
@@ -69,6 +70,7 @@ Report the number of dropped findings. Do not list speculative findings. Do not 
 ## Boundaries
 
 - Post findings outside the main session only if the caller explicitly tells you to.
+- Put temporary files in a private directory that your run creates. Delete only the files that your run made.
 - Keep tool output and the report small.
 - Return the report to the main session.
 
