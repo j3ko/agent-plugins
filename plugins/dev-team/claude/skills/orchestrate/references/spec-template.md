@@ -31,9 +31,10 @@ Under "Decisions already made", write a statement about the behavior of a source
 ## Decisions already made
 - <the choice, and the location of its record if it is durable>
 - (Do not decide these again. If a decision does not agree with the sources, stop and
-  report only if the conflict changes the scope, a public interface or an acceptance
-  check. For all other conflicts, use the reading that agrees with the sources and
-  continue. List that reading under "Deviations from spec" in the report.)
+  report only if the conflict changes the scope, a public interface or the behavior
+  that an acceptance check requires. For all other conflicts, such as a detail of a
+  test or a wording, use the reading that agrees with the sources and continue. List
+  that reading under "Deviations from spec" in the report.)
 
 ## Acceptance checks
 - <behavior that must hold, as a test name or as a command and its expected output>

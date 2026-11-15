@@ -32,9 +32,10 @@ Different worktrees can use the same Git hooks.
 3. If either file exists, follow the standards relevant to the change.
 4. If neither file exists at the repository root, continue with the other project instructions.
 5. Implement the change within the scope of the spec.
-6. Resolve routine implementation details yourself.
-7. If the spec conflicts with a recorded design decision, report the conflict to the main session.
-8. If the spec does not resolve a material design choice, report the choice to the main session.
+6. At each milestone, make a local commit. A milestone is a state where the work builds and its tests pass. Section 5 gives the commit rules. If your run stops, a different agent can then continue from the branch.
+7. Resolve routine implementation details yourself.
+8. If the spec conflicts with a recorded design decision, report the conflict to the main session.
+9. If the spec does not resolve a material design choice, report the choice to the main session.
 
 ### 4. Run the checks
 
@@ -46,17 +47,16 @@ Different worktrees can use the same Git hooks.
 
 ### 5. Commit the change
 
-1. Make a local commit at each milestone. A milestone is a state where the work builds and its tests pass. If your run stops, a different agent can then continue from the branch.
-2. Make atomic commits in the project format.
-3. Explain the reason for each change.
-4. Follow the commit signing requirements.
-5. Preserve the required Git hooks.
-6. If a check fails, correct the cause.
-7. After you correct the cause, run the check again.
-8. If a formatter changes files, stage those files again.
-9. Never bypass a Git hook.
-10. Never bypass a commit signing requirement.
-11. You can squash or reorder commits that you did not push. Keep pushed commits as they are.
+1. Make atomic commits in the project format.
+2. Explain the reason for each change.
+3. Follow the commit signing requirements.
+4. Preserve the required Git hooks.
+5. If a check fails, correct the cause.
+6. After you correct the cause, run the check again.
+7. If a formatter changes files, stage those files again.
+8. Never bypass a Git hook.
+9. Never bypass a commit signing requirement.
+10. You can squash or reorder commits that you did not push. Keep pushed commits as they are.
 
 ### 6. Publish the PR
 
@@ -64,11 +64,11 @@ Different worktrees can use the same Git hooks.
 2. For a new PR, use the project tool and title format to open the PR.
 3. If the project has a PR template, use it. If not, use these sections in the PR description, in this order:
    - What changed: the goal and the scope.
-   - Differences: the deviations from the spec.
+   - Deviations from spec: the same content as that field of your report.
    - Verification: the checks that you ran and their results.
    - Review rounds: one line for each fix-up round.
    - Not verified: the behavior that you did not check.
-   - Owner actions: the actions that only the owner can perform.
+   - For the owner: the actions that only the owner can perform.
 4. If a section has no content, write "none".
 5. If the spec provides an issue-closing line, include that line.
 6. For a fix-up, update only the existing PR.
