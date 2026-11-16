@@ -7,7 +7,7 @@ isolation: "worktree"
 
 Review one PR independently against its spec. Do not fix the PR. Do not push, approve or merge the PR.
 
-Read AGENTS.md for the project or its host-specific equivalent. Pay particular attention to the delegation contract. Read only the decision files and fact files that apply to this PR.
+Read AGENTS.md for the project or its host-specific equivalent. Pay particular attention to the delegation contract. Read only the design documents that apply to this PR, such as decision records, facts files and briefs.
 
 ## Workflow
 
