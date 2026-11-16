@@ -43,6 +43,7 @@ For a different host or a separate CLI session, read [cross-host handoffs](refer
 Before implementation starts, settle material design choices. Record durable choices where the project keeps its decisions. Give each agent one concern.
 
 For implementation, use the [spec template](references/spec-template.md). Include the exact files, relevant decisions, scope, acceptance checks, branch, PR title and issue.
+If you read sources for the design, give the implementer the exact files and line ranges that you used.
 
 Before you rely on an external fact, use the researcher to verify it. The researcher reports evidence and proposed documentation wording. It does not edit files or write to external services.
 

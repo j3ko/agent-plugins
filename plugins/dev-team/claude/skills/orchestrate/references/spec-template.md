@@ -19,7 +19,11 @@ Under "Decisions already made", write a statement about the behavior of a source
 
 ## Read
 - <path to a design document that the change touches: a decision record, facts file or brief>
-- (Read nothing else. Do not read every decision record.)
+- `<source path>`:<start>-<end> | `grep -n '<pattern>'`: <what to take from it>
+  (Name the exact module, its tests and, for a shared fixture file, the entry IDs.
+  Do not name a whole package or directory. For a source outside this repository,
+  add the commit.)
+- (Read nothing else. Do not read whole packages or every decision record.)
 
 ## In scope
 - `<path>`: <what changes>, at `<function>` / line <n> / `grep -n '<pattern>'`
