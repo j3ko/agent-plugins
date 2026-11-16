@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.8.0](https://github.com/j3ko/agent-plugins/compare/v0.7.0...v0.8.0) (2026-11-16)
+
+
+### Features
+
+* **orchestrate:** name source files with line ranges in specs ([#32](https://github.com/j3ko/agent-plugins/issues/32)) ([e7a8042](https://github.com/j3ko/agent-plugins/commit/e7a804215c276a5b32b94894e383eda1d789bb70))
+* **orchestrate:** require review of design documents ([#30](https://github.com/j3ko/agent-plugins/issues/30)) ([43ac22b](https://github.com/j3ko/agent-plugins/commit/43ac22b6dcaa0c0b1829817b49f91c015fba233d))
+
 ## [0.7.0](https://github.com/j3ko/agent-plugins/compare/v0.6.0...v0.7.0) (2026-11-15)
 
 
