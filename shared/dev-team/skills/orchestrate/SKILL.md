@@ -52,7 +52,7 @@ Before you launch an implementer, make sure that the authorized workflow can com
 
 1. Wait for the implementer to open or update its scoped PR and send its report.
 2. Check CI in the main session.
-3. For changes to code, scripts or CI, get an independent reviewer. Changes to only docs or only configuration do not need review, unless the project requires it.
+3. For changes to code, scripts, CI or design documents, get an independent reviewer. Design documents are files that record decisions, facts or planned work, such as decision records, facts files and briefs. Changes to only other docs or only configuration do not need review, unless the project requires it.
 4. Give the reviewer the PR, the branch or head commit, and the spec. The reviewer uses a separate worktree, runs the required checks and reports verified findings.
 5. Send actionable findings back as a small fix-up spec for the same PR branch.
 6. If a few mechanical edits are cheaper to do yourself, do them directly.

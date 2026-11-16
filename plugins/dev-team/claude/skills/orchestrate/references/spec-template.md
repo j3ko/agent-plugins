@@ -18,7 +18,7 @@ Under "Decisions already made", write a statement about the behavior of a source
 <One or two sentences: what this PR does and why. Only one concern.>
 
 ## Read
-- <path to a decision record, brief or facts file that the change touches>
+- <path to a design document that the change touches: a decision record, facts file or brief>
 - (Read nothing else. Do not read every decision record.)
 
 ## In scope
