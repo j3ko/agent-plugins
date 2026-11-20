@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.0](https://github.com/j3ko/agent-plugins/compare/v0.8.0...v0.9.0) (2026-11-20)
+
+
+### Features
+
+* **codex:** inject long-running wait rule through hooks ([#36](https://github.com/j3ko/agent-plugins/issues/36)) ([54337bc](https://github.com/j3ko/agent-plugins/commit/54337bc04f4442f312506b96d8640e23a2eb3fc9))
+
 ## [0.8.0](https://github.com/j3ko/agent-plugins/compare/v0.7.0...v0.8.0) (2026-11-16)
 
 
