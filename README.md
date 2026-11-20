@@ -32,6 +32,10 @@ The trusted hook installs three personal agent roles in `$CODEX_HOME/agents`.
 The default location is `~/.codex/agents`. The hook also updates these roles
 and keeps local edits.
 
+The plugin also adds a rule for long-running work to each session and each
+subagent. It does this through `SessionStart` and `SubagentStart` hooks. You
+must trust these hooks in `/hooks`.
+
 Codex checks for plugin updates when it starts. After an update, Codex can ask
 you to trust the hook again. If it asks, review the hook and trust it again.
 If the hook reports role changes, restart Codex.
