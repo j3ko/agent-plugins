@@ -56,9 +56,9 @@ A separate process does not inherit the approvals or sandbox of the caller.
 
 1. Resolve permissions separately from the model choice.
 2. Use the destination-host policy that the project authorizes.
-3. For a Codex destination, use the [default Codex permissions](#default-codex-permissions) if the project authorizes no other policy.
+3. If the project authorizes no other policy, use the default permissions of the destination: the [default Codex permissions](#default-codex-permissions) or the [default Claude permissions](#default-claude-permissions).
 4. Before you start an implementer, make sure that the policy permits the necessary read, check, signing and network operations.
-5. For a Claude destination, if the project did not authorize a suitable policy, keep the work reviewable.
+5. If a project-authorized policy does not permit these operations, keep the work reviewable.
 6. Report the missing authorization.
 
 ## Launch the role
@@ -88,7 +88,7 @@ To inspect the settings and the command without a launch, add `--dry-run`. A dry
 
 ### Permission file
 
-Pass the permission file that the project authorizes. For a Codex destination without such a file, pass a file with the defaults below. The launcher reads no other permission source.
+Pass the permission file that the project authorizes. Without such a file, pass a file with the defaults below. The launcher reads no other permission source.
 
 - Codex: a TOML file. The launcher reads only the `sandbox_mode` and `approval_policy` fields and passes them as invocation overrides. The summary lists the other keys as `ignored_keys`. With Codex CLI 0.167.0, a `codex exec` session used the `sandbox_mode` of the file. But it recorded the approval policy `never` when the file gave `on-request`. Thus, do not rely on approval requests in a launched Codex role.
 - Claude: a settings JSON file. The launcher passes its path with `--settings`.
@@ -96,7 +96,7 @@ Pass the permission file that the project authorizes. For a Codex destination wi
 If the project authorizes no file, use these defaults:
 
 - Codex: write the [default Codex permissions](#default-codex-permissions) to `$dispatch/codex-permissions.toml`. Pass that path with `--permissions`.
-- Claude: omit `--permissions`. The configured policy of the destination then stays in effect.
+- Claude: write the [default Claude permissions](#default-claude-permissions) to `$dispatch/claude-settings.json`. Pass that path with `--permissions`.
 
 #### Default Codex permissions
 
@@ -111,6 +111,20 @@ These settings turn off the inner sandbox of Codex. The container or the machine
 - A `codex exec` session does not ask for approvals, so `on-request` gives no protection. The value `never` records this behavior explicitly.
 
 Because the role has full access, state the limits of the role in the spec. For example, state the files in scope, "Do not merge" and the network operations that the role can do. A researcher or a reviewer has full access too. Its role instructions do not make the session read-only.
+
+#### Default Claude permissions
+
+```json
+{"permissions": {"defaultMode": "bypassPermissions"}}
+```
+
+This setting turns off the permission checks of Claude Code. The container or the machine is then the only isolation boundary. Use it for these reasons:
+
+- A `claude -p` session cannot ask for approvals. Without an allowance, it denies the tool call, and the launcher gives exit status 1.
+- An allowlist does not anticipate all commands. In a test with an allowlist, Claude tried to write a file with `tee` and to delete its temporary directory with `rm`. The allowlist did not permit these shell commands, so Claude Code denied them. An allowance for `Edit` does not permit shell writes.
+- In print mode, Claude Code silently ignores a settings file that fails validation. Copy this JSON exactly.
+
+The limits for the default Codex permissions also apply here. In the spec, state the files in scope and "Do not merge". Also forbid changes to credentials, deployments and persistent settings. For a researcher, the launcher also removes the direct editing tools. Shell writes are still possible.
 
 The owner can give the host a permission rule for this one command. Do not add or change that rule yourself.
 
@@ -160,8 +174,9 @@ A `bwrap` namespace failure shows that the policy in effect needs a sandbox that
 
 Launch Claude in the assigned worktree. The `--append-system-prompt-file` option transfers the extracted shared role instructions. With this option, the destination does not need an installation of the plugin.
 
-1. Set `claude_permissions` from the Claude policy that the project authorizes.
-2. For a researcher, also set `claude_role_options=(--disallowedTools Edit Write NotebookEdit)`.
+1. If the project authorizes a Claude settings file, set `claude_settings` to its absolute path. Otherwise, select an absolute path for `claude_settings` and write the [default Claude permissions](#default-claude-permissions) to that file.
+2. After you select the settings file, set `claude_permissions=(--settings "$claude_settings")`.
+3. For a researcher, also set `claude_role_options=(--disallowedTools Edit Write NotebookEdit)`.
 
 The researcher options keep the direct editing-tool exclusions of the Claude adapter. These exclusions do not prevent writes from shell commands.
 
@@ -239,6 +254,8 @@ The evaluation on 2026-11-20 used Codex CLI 0.171.0 and the launcher in a contai
 
 - With `workspace-write`, every shell command of the Codex implementer failed. The launcher still gave exit status 0.
 - With the default Codex permissions, a Codex `gpt-6.1-sol` implementer created a branch, ran the project checks, made a GPG-signed commit, pushed it and opened a Gitea PR with `tea`. The PR checks passed.
+- With Claude Code 2.1.329 in print mode, the default Claude permissions passed with `--settings` let `tee` and `rm` run with no permission denials. Without the file, Claude Code denied both commands. With the file and `--disallowedTools Edit Write NotebookEdit`, the `Write` tool was not available.
+- An owner-run Claude implementer with a session-only allowlist completed a PR. It got denials for a `tee` write and an `rm` cleanup.
 
 The evaluations did not test full installed-plugin routing or a reviewer comparison on a real PR. Check these capabilities again in the target environment.
 
