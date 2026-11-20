@@ -121,7 +121,7 @@ Because the role has full access, state the limits of the role in the spec. For 
 This setting turns off the permission checks of Claude Code. The container or the machine is then the only isolation boundary. Use it for these reasons:
 
 - A `claude -p` session cannot ask for approvals. Without an allowance, it denies the tool call, and the launcher gives exit status 1.
-- An allowlist does not anticipate all commands. In a test with an allowlist, Claude wrote a file with `tee` and deleted its temporary directory with `rm`. The allowlist did not permit these shell commands, so Claude Code denied them. An allowance for `Edit` does not permit shell writes.
+- An allowlist does not anticipate all commands. In a test with an allowlist, Claude tried to write a file with `tee` and to delete its temporary directory with `rm`. The allowlist did not permit these shell commands, so Claude Code denied them. An allowance for `Edit` does not permit shell writes.
 - In print mode, Claude Code silently ignores a settings file that fails validation. Copy this JSON exactly.
 
 The limits for the default Codex permissions also apply here. In the spec, state the files in scope and "Do not merge". Also forbid changes to credentials, deployments and persistent settings. For a researcher, the launcher also removes the direct editing tools. Shell writes are still possible.
@@ -253,7 +253,7 @@ The evaluation on 2026-11-20 used Codex CLI 0.171.0 and the launcher in a contai
 
 - With `workspace-write`, every shell command of the Codex implementer failed. The launcher still gave exit status 0.
 - With the default Codex permissions, a Codex `gpt-6.1-sol` implementer created a branch, ran the project checks, made a GPG-signed commit, pushed it and opened a Gitea PR with `tea`. The PR checks passed.
-- With Claude Code 2.1.329 in print mode, the default Claude permissions passed with `--settings` let `tee` and `rm` run with no permission denials. Without the file, Claude Code denied both commands.
+- With Claude Code 2.1.329 in print mode, the default Claude permissions passed with `--settings` let `tee` and `rm` run with no permission denials. Without the file, Claude Code denied both commands. With the file and `--disallowedTools Edit Write NotebookEdit`, the `Write` tool was not available.
 - An owner-run Claude implementer with a session-only allowlist completed a PR. It got denials for a `tee` write and an `rm` cleanup.
 
 The evaluations did not test full installed-plugin routing or a reviewer comparison on a real PR. Check these capabilities again in the target environment.
