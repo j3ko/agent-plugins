@@ -174,8 +174,9 @@ A `bwrap` namespace failure shows that the policy in effect needs a sandbox that
 
 Launch Claude in the assigned worktree. The `--append-system-prompt-file` option transfers the extracted shared role instructions. With this option, the destination does not need an installation of the plugin.
 
-1. Write the [default Claude permissions](#default-claude-permissions) to `$claude_settings`, then set `claude_permissions=(--settings "$claude_settings")`. If the project authorizes a different Claude settings file, set `claude_settings` to that file instead.
-2. For a researcher, also set `claude_role_options=(--disallowedTools Edit Write NotebookEdit)`.
+1. If the project authorizes a Claude settings file, set `claude_settings` to its absolute path. Otherwise, select an absolute path for `claude_settings` and write the [default Claude permissions](#default-claude-permissions) to that file.
+2. After you select the settings file, set `claude_permissions=(--settings "$claude_settings")`.
+3. For a researcher, also set `claude_role_options=(--disallowedTools Edit Write NotebookEdit)`.
 
 The researcher options keep the direct editing-tool exclusions of the Claude adapter. These exclusions do not prevent writes from shell commands.
 
