@@ -61,7 +61,7 @@ Without orchestration, these roles use the subagent defaults of the host or inhe
 
 Keep Luna research bounded. Require evidence with links to the sources.
 
-Native subagents inherit the sandbox and approvals of the parent. A read-only role instruction does not create an enforced read-only sandbox. Separate CLI sessions use the project-authorized settings from the cross-host reference.
+Native subagents inherit the sandbox and approvals of the parent. A read-only role instruction does not create an enforced read-only sandbox. Separate CLI sessions use the project-authorized or default settings from the cross-host reference.
 
 For the implementer and the reviewer, do these steps:
 
