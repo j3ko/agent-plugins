@@ -9,8 +9,18 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / 'adapters/codex/hooks/wait_rule.py'
-RULE_START = 'Long-running commands and agents:\n'
-RULE_END = 'Do not say that a task, a wait or a notification exists unless the tool call succeeded.\n'
+EXPECTED = (
+    'Long-running commands and agents:\n'
+    '- Start a long command once with `exec_command`. Keep its session ID.\n'
+    '- To check a running command, call `write_stdin` with empty input and the longest'
+    ' `yield_time_ms` that the tool allows. Do not run `sleep` commands to wait.'
+    ' Do not read the same log again and again.\n'
+    '- If one blocking command can wait for the result, run it with a long `timeout_ms`.'
+    ' For example, use `gh pr checks --watch`.\n'
+    '- When you wait for subagents, call `wait_agent` with a timeout of several minutes.\n'
+    '- Collect the final output and the exit status.\n'
+    '- Do not say that a task, a wait or a notification exists unless the tool call succeeded.\n'
+)
 WAIT = 'python3 "${PLUGIN_ROOT}/hooks/wait_rule.py"'
 SYNC = 'python3 "${PLUGIN_ROOT}/hooks/sync_roles.py"'
 
@@ -24,10 +34,7 @@ class WaitRuleTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as cwd:
             result = subprocess.run([sys.executable, str(SCRIPT)], cwd=cwd, text=True, capture_output=True)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertTrue(result.stdout.startswith(RULE_START))
-        self.assertTrue(result.stdout.endswith(RULE_END))
-        for tool in ('exec_command', 'write_stdin', 'yield_time_ms', 'timeout_ms', 'wait_agent'):
-            self.assertIn(f'`{tool}`', result.stdout)
+        self.assertEqual(result.stdout, EXPECTED)
         self.assertNotIn(result.stdout[0], '{[')
 
     def test_hooks_register_script_for_both_events(self):
