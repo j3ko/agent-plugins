@@ -56,9 +56,10 @@ A separate process does not inherit the approvals or sandbox of the caller.
 
 1. Resolve permissions separately from the model choice.
 2. Use the destination-host policy that the project authorizes.
-3. Before you start an implementer, make sure that the policy permits the necessary read, check, signing and network operations.
-4. If the project did not authorize a suitable policy, keep the work reviewable.
-5. Report the missing authorization.
+3. For a Codex destination, use the [default Codex permissions](#default-codex-permissions) if the project authorizes no other policy.
+4. Before you start an implementer, make sure that the policy permits the necessary read, check, signing and network operations.
+5. For a Claude destination, if the project did not authorize a suitable policy, keep the work reviewable.
+6. Report the missing authorization.
 
 ## Launch the role
 
@@ -87,12 +88,29 @@ To inspect the settings and the command without a launch, add `--dry-run`. A dry
 
 ### Permission file
 
-Pass only the permission file that the project authorizes. The launcher reads no other permission source.
+Pass the permission file that the project authorizes. For a Codex destination without such a file, pass a file with the defaults below. The launcher reads no other permission source.
 
 - Codex: a TOML file. The launcher reads only the `sandbox_mode` and `approval_policy` fields and passes them as invocation overrides. The summary lists the other keys as `ignored_keys`. With Codex CLI 0.167.0, a `codex exec` session used the `sandbox_mode` of the file. But it recorded the approval policy `never` when the file gave `on-request`. Thus, do not rely on approval requests in a launched Codex role.
 - Claude: a settings JSON file. The launcher passes its path with `--settings`.
 
-If the project authorizes no file, omit `--permissions`. The configured policy of the destination then stays in effect.
+If the project authorizes no file, use these defaults:
+
+- Codex: write the [default Codex permissions](#default-codex-permissions) to `$dispatch/codex-permissions.toml`. Pass that path with `--permissions`.
+- Claude: omit `--permissions`. The configured policy of the destination then stays in effect.
+
+#### Default Codex permissions
+
+```toml
+sandbox_mode = "danger-full-access"
+approval_policy = "never"
+```
+
+These settings turn off the inner sandbox of Codex. The container or the machine is then the only isolation boundary. Use them for these reasons:
+
+- The `read-only` and `workspace-write` modes need `bwrap` namespaces. Many containers cannot create these namespaces. In such a container, every shell command fails with `bwrap: No permissions to create a new namespace`. With Codex CLI 0.171.0, the role then reported a block and changed no files.
+- A `codex exec` session does not ask for approvals, so `on-request` gives no protection. The value `never` records this behavior explicitly.
+
+Because the role has full access, state the limits of the role in the spec. For example, state the files in scope, "Do not merge" and the network operations that the role can do. A researcher or a reviewer has full access too. Its role instructions do not make the session read-only.
 
 The owner can give the host a permission rule for this one command. Do not add or change that rule yourself.
 
@@ -119,9 +137,10 @@ Use the commands below only if the launcher is not available. They are the comma
 
 ### Claude to Codex
 
-Build `codex_permissions` as a Bash array from the Codex launch settings that the project authorizes. If the array is empty, the configured policy of the destination stays in effect. Keep the role body in `handoff`, because `codex exec` does not select one of our custom roles by name.
+Set `codex_permissions` as a Bash array. The array below holds the [default Codex permissions](#default-codex-permissions). If the project authorizes a different Codex policy, use its settings instead. Keep the role body in `handoff`, because `codex exec` does not select one of our custom roles by name.
 
 ```bash
+codex_permissions=(-c 'sandbox_mode="danger-full-access"' -c 'approval_policy="never"')
 codex "${codex_permissions[@]}" exec -C "$worktree" \
   --model "$model" -c "model_reasoning_effort=\"$effort\"" \
   --json -o "$report" - < "$handoff" > "$events" 2> "$errors"
@@ -131,7 +150,11 @@ Pass model and effort values from the supported host catalog as quoted arguments
 
 The evaluated Codex CLI does not have a general `--config-file` flag. The project can authorize a dedicated permission TOML file. If it does, read the `sandbox_mode` and `approval_policy` fields from that file. Pass each field as an invocation override in the format `-c key="value"`. Do not replace `CODEX_HOME`, copy authentication or change installed configuration.
 
-Apply the full-access policy of a container only if the project and the owner authorize it. A `bwrap` namespace failure can show that the container cannot run the inner sandbox of Codex. The failure does not show that read-only Codex generally cannot run commands. Report such failures before you change permissions.
+A `bwrap` namespace failure shows that the policy in effect needs a sandbox that the destination cannot create. Do these checks:
+
+1. For a launcher dispatch, make sure that `--permissions` named the file with the default Codex permissions.
+2. For a manual launch, make sure that the command includes `codex_permissions`.
+3. If the project authorized a different policy, do not change it. Report the block to the owner.
 
 ### Codex to Claude
 
@@ -212,6 +235,11 @@ The evaluation on 2026-11-10 used Codex CLI 0.167.0, Claude Code 2.1.321 and off
 - Direct Codex read the fixture after the owner authorized the permission settings of the container.
 - Three plugin tests passed. They covered runtime model and effort forwarding, cwd handling and background jobs.
 
-The evaluation did not test full installed-plugin routing, a reviewer comparison on a real PR, or implementer signing and push. Check these capabilities again in the target environment.
+The evaluation on 2026-11-20 used Codex CLI 0.171.0 and the launcher in a container that cannot create `bwrap` namespaces. It gave these results:
+
+- With `workspace-write`, every shell command of the Codex implementer failed. The launcher still gave exit status 0.
+- With the default Codex permissions, a Codex `gpt-6.1-sol` implementer created a branch, ran the project checks, made a GPG-signed commit, pushed it and opened a Gitea PR with `tea`. The PR checks passed.
+
+The evaluations did not test full installed-plugin routing or a reviewer comparison on a real PR. Check these capabilities again in the target environment.
 
 Native model controls: [Codex custom-role precedence](https://learn.chatgpt.com/docs/agent-configuration/subagents), [Claude per-invocation model/effort](https://code.claude.com/docs/en/sub-agents), and [Claude CLI flags](https://code.claude.com/docs/en/cli-reference).
