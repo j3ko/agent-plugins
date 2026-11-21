@@ -43,6 +43,9 @@ if name == "codex":
         print(json.dumps(command(bwrap + "\\n", 0)))
         print(json.dumps({{"type": "item.completed", "item": {{"type": "agent_message", "text": bwrap}}}}))
         print(json.dumps(command("grep: " + bwrap + ": no match\\n", 1)))
+        # A diff that exits with 1 and prints the diagnostic first, after a command that succeeded.
+        print(json.dumps(command(bwrap + "\\n---\\nother\\n", 1)))
+        print("null")
     if mode != "empty":
         Path(args[args.index("-o") + 1]).write_text("codex final report\\n")
 elif mode == "malformed":
@@ -196,7 +199,8 @@ class LaunchRoleTests(unittest.TestCase):
         defaults = self.base / '.dev-team.toml'
         for content in ('permissions = "x"\n', '[permissions]\ngemini = "/x"\n',
                         '[permissions]\ncodex = "relative.toml"\n', '[permissions]\ncodex = 1\n',
-                        '[permissions\n'):
+                        '[permissions]\nclaude = 42\n', '[permissions]\nclaude = "relative.json"\n',
+                        '[permissions]\ncodex = "/x\\u0000y"\n', '[permissions\n'):
             with self.subTest(content=content):
                 defaults.write_text(content)
                 self.launch('claude', 'codex', '--project-defaults', defaults, expect=2)

@@ -63,6 +63,8 @@ def role_body(role: str) -> str:
 
 
 def absolute(value: str, name: str) -> Path:
+    if "\0" in value:
+        raise UsageError(f"--{name} contains a NUL character: {value!r}")
     path = Path(value)
     if not path.is_absolute():
         raise UsageError(f"--{name} must be an absolute path: {value}")
@@ -89,12 +91,13 @@ def project_permissions(host: str, defaults: Path) -> Path | None:
     unknown = sorted(set(table) - {"claude", "codex"})
     if unknown:
         raise UsageError(f"{defaults}: [permissions] has unknown keys: {', '.join(unknown)}")
-    value = table.get(host)
-    if value is None:
-        return None
-    if not isinstance(value, str) or not value:
-        raise UsageError(f"{defaults}: permissions.{host} must be a nonempty string")
-    return absolute(value, f"project-defaults permissions.{host}")
+    # Check each entry, not only the entry of the destination host.
+    paths: dict[str, Path] = {}
+    for key, value in table.items():
+        if not isinstance(value, str) or not value:
+            raise UsageError(f"{defaults}: permissions.{key} must be a nonempty string")
+        paths[key] = absolute(value, f"project-defaults permissions.{key}")
+    return paths.get(host)
 
 
 def sandbox_failed(events: Path, errors: Path) -> bool:
@@ -102,8 +105,9 @@ def sandbox_failed(events: Path, errors: Path) -> bool:
 
     The events also hold the output of the commands of the role and its messages.
     A role that only reads or quotes the diagnostic must not fail the dispatch.
-    Thus, match only a failed command whose output starts with the diagnostic,
-    or the diagnostic in the errors of the Codex CLI.
+    A sandbox that cannot start makes every command fail. Thus, match a failed
+    command whose output starts with the diagnostic, only if no command
+    succeeded. Also match the diagnostic in the errors of the Codex CLI.
     """
     try:
         if SANDBOX_FAILURE in errors.read_text(errors="replace"):
@@ -111,18 +115,24 @@ def sandbox_failed(events: Path, errors: Path) -> bool:
         lines = events.read_text(errors="replace").splitlines()
     except OSError:
         return False
+    blocked = False
     for line in lines:
         try:
             event = json.loads(line)
         except json.JSONDecodeError:
             continue
-        item = event.get("item") if isinstance(event, dict) else None
-        if (event.get("type") == "item.completed" and isinstance(item, dict)
-                and item.get("type") == "command_execution"
-                and item.get("exit_code") not in (0, None)
+        if not isinstance(event, dict):
+            continue
+        item = event.get("item")
+        if (event.get("type") != "item.completed" or not isinstance(item, dict)
+                or item.get("type") != "command_execution"):
+            continue
+        if item.get("exit_code") == 0:
+            return False
+        if (item.get("exit_code") is not None
                 and str(item.get("aggregated_output", "")).lstrip().startswith(SANDBOX_FAILURE)):
-            return True
-    return False
+            blocked = True
+    return blocked
 
 
 def permission_arguments(host: str, path: Path | None, origin: str) -> tuple[list[str], dict[str, object]]:

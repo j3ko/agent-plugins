@@ -157,7 +157,7 @@ The launcher gives exit status 1 for these conditions:
 - The report is missing or empty.
 - The Claude output is malformed or is not a success.
 - The Claude output lists permission denials.
-- The Codex sandbox could not start: a failed Codex command gave output that starts with `bwrap: No permissions to create a new namespace`, or the Codex errors contain this text. Codex can exit with 0 in this case. The launcher ignores this text in role messages and in the output of commands that succeed.
+- The Codex sandbox could not start: no Codex command succeeded, and a failed command gave output that starts with `bwrap: No permissions to create a new namespace`. Or the Codex errors contain this text. Codex can exit with 0 in this case. The launcher ignores this text in role messages and in sessions where a command succeeded.
 
 Exit status 0 does not show that the work is complete. The launcher does not detect other Codex permission denials or blockers that the role reports. Read the report and do the checks in "Verify the result".
 
