@@ -4,8 +4,9 @@
 The launcher builds the handoff from the packaged role instructions and a spec
 file, starts the destination CLI in the assigned worktree and collects the
 report. It reads permission settings only from the file that --permissions
-names. Without --permissions, the configured policy of the destination stays
-in effect. The launcher does not install software and does not change
+names, or else from the file that the [permissions] table of the
+--project-defaults file names for the destination host. Without either, the
+configured policy of the destination stays in effect. The launcher does not install software and does not change
 persistent configuration.
 
 Exit status: 0 = the report is collected, 1 = the dispatch failed,
@@ -70,6 +71,24 @@ def runtime_value(value: str, name: str) -> str:
     if not value or value.startswith("-") or not value.isprintable() or any(c.isspace() for c in value):
         raise UsageError(f"--{name} is not a valid value: {value!r}")
     return value
+
+
+def project_permissions(host: str, defaults: Path) -> Path | None:
+    """Return the permission file that the [permissions] table of .dev-team.toml names for the host."""
+    if not defaults.is_file():
+        raise UsageError(f"--project-defaults is not a file: {defaults}")
+    try:
+        table = tomllib.loads(defaults.read_text()).get("permissions", {})
+    except tomllib.TOMLDecodeError as error:
+        raise UsageError(f"{defaults}: not valid TOML: {error}") from error
+    if not isinstance(table, dict) or set(table) - {"codex", "claude"}:
+        raise UsageError(f"{defaults}: [permissions] must be a table with only the keys codex and claude")
+    value = table.get(host)
+    if value is None:
+        return None
+    if not isinstance(value, str) or not value:
+        raise UsageError(f"{defaults}: permissions.{host} must be a nonempty string")
+    return absolute(value, f"project-defaults permissions.{host}")
 
 
 def permission_arguments(host: str, path: Path | None) -> tuple[list[str], dict[str, object]]:
@@ -160,6 +179,8 @@ def main() -> int:
     parser.add_argument("--output-dir", required=True, help="Absolute dispatch directory outside the worktree")
     parser.add_argument("--permissions", help="Absolute path of the permission file that the project authorizes "
                         "(Codex: TOML with sandbox_mode and approval_policy; Claude: settings JSON)")
+    parser.add_argument("--project-defaults", help="Absolute path of the project's .dev-team.toml. Its [permissions] "
+                        "table names the permission file of each host. --permissions has priority")
     parser.add_argument("--dry-run", action="store_true", help="Print the settings and the command; write no files and do not launch")
     args = parser.parse_args()
 
@@ -169,7 +190,9 @@ def main() -> int:
         worktree = absolute(args.worktree, "worktree")
         spec = absolute(args.spec, "spec")
         output = absolute(args.output_dir, "output-dir")
-        permissions = absolute(args.permissions, "permissions") if args.permissions else None
+        permissions = absolute(args.permissions, "permissions") if args.permissions is not None else None
+        if permissions is None and args.project_defaults is not None:
+            permissions = project_permissions(args.host, absolute(args.project_defaults, "project-defaults"))
         if not worktree.is_dir():
             raise UsageError(f"--worktree is not a directory: {worktree}")
         if not spec.is_file():

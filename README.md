@@ -84,7 +84,15 @@ effort = "high"
 host = "codex"
 model = "sol"
 effort = "high"
+
+[permissions]
+codex = "/etc/codex/config.toml"
 ```
+
+The optional `[permissions]` table names the permission file that you authorize for each
+destination host. The orchestrator passes it to launched roles, so that you do not
+have to give it for each task. In the example, `/etc/codex/config.toml` is the Codex
+policy of a dev container. A `claude` entry names a Claude Code settings JSON file.
 
 The orchestrator resolves shorthand such as `sol` using the selected host's available models.
 Before it launches an agent, it states the exact model and effort.

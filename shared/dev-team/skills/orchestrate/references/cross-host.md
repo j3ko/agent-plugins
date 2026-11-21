@@ -55,8 +55,8 @@ Destination roles must obey the project instructions, the delegation contract an
 A separate process does not inherit the approvals or sandbox of the caller.
 
 1. Resolve permissions separately from the model choice.
-2. Use the destination-host policy that the project authorizes.
-3. If the project authorizes no other policy, use the default permissions of the destination: the [default Codex permissions](#default-codex-permissions) or the [default Claude permissions](#default-claude-permissions).
+2. Use the permission file that the owner names for this task. Otherwise, use the entry for the destination host in the `[permissions]` table of `.dev-team.toml` ([project defaults](project-defaults.md#permissions)). Pass `.dev-team.toml` to the launcher with `--project-defaults`. The launcher reads the entry. Do not write a permission file of your own in this case.
+3. If neither names a file, use the default permissions of the destination: the [default Codex permissions](#default-codex-permissions) or the [default Claude permissions](#default-claude-permissions).
 4. Before you start an implementer, make sure that the policy permits the necessary read, check, signing and network operations.
 5. If a project-authorized policy does not permit these operations, keep the work reviewable.
 6. Report the missing authorization.
@@ -69,16 +69,16 @@ Use the launcher `scripts/launch_role.py` in the directory of the orchestrate sk
 python3 "$skill_dir/scripts/launch_role.py" \
   --role "$role" --host "$host" --model "$model" --effort "$effort" \
   --worktree "$worktree" --spec "$spec" --output-dir "$dispatch" \
-  --permissions "$permission_config"
+  --project-defaults "$project_root/.dev-team.toml"
 ```
 
-All paths must be absolute. Use a new `--output-dir` outside the worktree for each dispatch. The launcher does not replace the files of an earlier dispatch.
+Use `--project-defaults` if `.dev-team.toml` exists. Add `--permissions "$permission_config"` for a file that the owner names for this task, or for the defaults below. `--permissions` has priority. All paths must be absolute. Use a new `--output-dir` outside the worktree for each dispatch. The launcher does not replace the files of an earlier dispatch.
 
 The launcher does these steps:
 
 1. It copies the role instructions from its own package.
 2. It builds the handoff from the role instructions and the spec file.
-3. It reads the permission file that `--permissions` names.
+3. It reads the permission file that `--permissions` names, or else the file that the `[permissions]` table names for the destination host.
 4. It prints the resolved settings and the command to stderr.
 5. It runs the destination CLI in the worktree.
 6. It writes `role_prompt.md`, `handoff.md`, the events, `errors.log`, `report.md` and `dispatch.json` to the output directory.
@@ -88,12 +88,12 @@ To inspect the settings and the command without a launch, add `--dry-run`. A dry
 
 ### Permission file
 
-Pass the permission file that the project authorizes. Without such a file, pass a file with the defaults below. The launcher reads no other permission source.
+The launcher reads a permission file only from `--permissions` or from the `[permissions]` table of the `--project-defaults` file. Without either, it adds no permission arguments, and the configured policy of the destination stays in effect.
 
 - Codex: a TOML file. The launcher reads only the `sandbox_mode` and `approval_policy` fields and passes them as invocation overrides. The summary lists the other keys as `ignored_keys`. With Codex CLI 0.167.0, a `codex exec` session used the `sandbox_mode` of the file. But it recorded the approval policy `never` when the file gave `on-request`. Thus, do not rely on approval requests in a launched Codex role.
 - Claude: a settings JSON file. The launcher passes its path with `--settings`.
 
-If the project authorizes no file, use these defaults:
+If neither the owner nor the `[permissions]` table names a file, use these defaults:
 
 - Codex: write the [default Codex permissions](#default-codex-permissions) to `$dispatch/codex-permissions.toml`. Pass that path with `--permissions`.
 - Claude: write the [default Claude permissions](#default-claude-permissions) to `$dispatch/claude-settings.json`. Pass that path with `--permissions`.

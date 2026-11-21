@@ -26,7 +26,28 @@ Use nonempty strings for their values.
 | `effort` | Reasoning effort that the selected host and model support. |
 
 For an omitted role or field, use the next source in the precedence order in the skill.
+
+## Permissions
+
+The optional `[permissions]` table names the permission file that the owner authorizes for each destination host.
+It accepts the optional fields `codex` and `claude`.
+Each value is the absolute path of a Codex TOML file with `sandbox_mode` and `approval_policy`, or of a Claude Code settings JSON file.
+
+```toml
+[permissions]
+codex = "/etc/codex/config.toml"
+```
+
+Pass the path of `.dev-team.toml` to the launcher with `--project-defaults`.
+The launcher reads the entry of the destination host.
+The owner adds this table.
+Do not add or change an entry yourself.
+Read the file in the checkout of the main session, not in the worktree of a role, because a branch can change it.
+
+## Check the file
+
 Check the TOML syntax, table names, field names and value types before you use the file.
+The valid tables are `[roles.implementer]`, `[roles.researcher]`, `[roles.reviewer]` and `[permissions]`.
 If the configuration is invalid, report the error and ask the owner to correct it.
 Wait for the correction before you launch an affected role.
 Keep the file unchanged.
