@@ -198,6 +198,32 @@ class LaunchRoleTests(unittest.TestCase):
                 self.assertIn('must be outside the worktree', result.stderr)
                 self.assertFalse(self.record.exists())
 
+    def test_a_directory_link_and_dotdot_cannot_hide_a_worktree_link(self):
+        outside = self.base / 'outside.toml'
+        outside.write_text('sandbox_mode = "workspace-write"\n')
+        (self.worktree / 'sub' / 'deep').mkdir(parents=True)
+        (self.worktree / 'sub' / 'policy.toml').symlink_to(outside)
+        (self.base / 'dirlink').symlink_to(self.worktree / 'sub' / 'deep')
+        # The kernel opens worktree/sub/policy.toml; the text alone gives base/policy.toml.
+        raw = f'{self.base}/dirlink/../policy.toml'
+        defaults = self.base / '.dev-team.toml'
+        defaults.write_text(f'[permissions]\ncodex = "{raw}"\n')
+        for extra in (('--permissions', raw), ('--project-defaults', defaults)):
+            with self.subTest(extra=extra):
+                result = self.launch('claude', 'codex', *extra, '--dry-run', expect=2)
+                self.assertIn('must be outside the worktree', result.stderr)
+
+    def test_too_many_links_stop_before_launch(self):
+        target = self.base / 'policy.toml'
+        target.write_text('sandbox_mode = "workspace-write"\n')
+        for index in range(41):
+            link = self.base / f'link{index}'
+            link.symlink_to(target)
+            target = link
+        result = self.launch('claude', 'codex', '--permissions', target, '--dry-run', expect=2)
+        self.assertIn('more than 40 symbolic links', result.stderr)
+        self.launch('claude', 'codex', '--permissions', self.base / 'link39', '--dry-run')
+
     def test_missing_file_for_the_other_host_stops_before_launch(self):
         defaults = self.base / '.dev-team.toml'
         defaults.write_text(f'[permissions]\nclaude = "{self.base / "absent.json"}"\n')

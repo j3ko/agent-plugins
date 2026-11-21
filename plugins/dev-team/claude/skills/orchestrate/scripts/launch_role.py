@@ -78,23 +78,49 @@ def runtime_value(value: str, name: str) -> str:
     return value
 
 
-def path_hops(raw: str) -> list[Path]:
-    """Return the given path, each path that its symbolic links lead to, and the resolved path."""
-    hops: list[Path] = []
-    pending = [Path(os.path.normpath(raw))]
-    while pending and len(hops) < 40:
-        path = pending.pop()
-        if path in hops:
-            continue
-        hops.append(path)
-        for index in range(1, len(path.parts) + 1):
-            prefix = Path(*path.parts[:index])
-            if prefix.is_symlink():
-                target = Path(os.path.normpath(prefix.parent / os.readlink(prefix)))
-                pending.append(target.joinpath(*path.parts[index:]))
-                break
-    hops.append(Path(raw).resolve())
-    return hops
+MAX_LINKS = 40
+
+
+def traversed_paths(raw: str, name: str) -> list[Path]:
+    """Return each path that the file system visits to open the absolute path raw.
+
+    Resolve the components in file system order, as the kernel does: follow a
+    symbolic link where it occurs, and apply ".." to the directory that was reached,
+    not to the text. The list holds each link, each directory and the final path.
+    Stop with an error if the walk cannot finish.
+    """
+    visited: list[Path] = []
+    links = 0
+
+    def walk(start: str, text: str) -> str:
+        nonlocal links
+        current = "/" if text.startswith("/") else start
+        for part in text.split("/"):
+            if part in ("", "."):
+                continue
+            if part == "..":
+                current = os.path.dirname(current) or "/"
+                visited.append(Path(current))
+                continue
+            candidate = os.path.join(current, part)
+            visited.append(Path(candidate))
+            try:
+                is_link = os.path.islink(candidate)
+                target = os.readlink(candidate) if is_link else ""
+            except OSError as error:
+                raise UsageError(f"{name}: cannot inspect {candidate}: {error}") from error
+            if is_link:
+                links += 1
+                if links > MAX_LINKS:
+                    raise UsageError(f"{name}: more than {MAX_LINKS} symbolic links: {raw}")
+                current = walk(current, target)
+                visited.append(Path(current))
+            else:
+                current = candidate
+        return current
+
+    walk("/", raw)
+    return visited
 
 
 def outside_worktree(raw: str, name: str, worktrees: tuple[Path, ...]) -> None:
@@ -104,7 +130,7 @@ def outside_worktree(raw: str, name: str, worktrees: tuple[Path, ...]) -> None:
     before the launch. A permission source in the worktree could thus select its own
     policy. A link in the worktree to a file outside is a source in the worktree too.
     """
-    for path in path_hops(raw):
+    for path in [*traversed_paths(raw, name), Path(raw).resolve()]:
         for tree in worktrees:
             if path == tree or tree in path.parents:
                 raise UsageError(f"{name} must be outside the worktree: {raw}")
