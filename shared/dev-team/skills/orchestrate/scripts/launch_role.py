@@ -190,7 +190,7 @@ def main() -> int:
         worktree = absolute(args.worktree, "worktree")
         spec = absolute(args.spec, "spec")
         output = absolute(args.output_dir, "output-dir")
-        permissions = absolute(args.permissions, "permissions") if args.permissions is not None else None
+        permissions = absolute(args.permissions, "permissions") if args.permissions else None
         if permissions is None and args.project_defaults is not None:
             permissions = project_permissions(args.host, absolute(args.project_defaults, "project-defaults"))
         if not worktree.is_dir():
