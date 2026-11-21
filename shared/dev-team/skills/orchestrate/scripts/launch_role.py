@@ -27,6 +27,9 @@ PACKAGE = Path(__file__).resolve().parents[3]
 ROLES = ("implementer", "researcher", "reviewer")
 CODEX_PERMISSION_KEYS = ("sandbox_mode", "approval_policy")
 RESEARCHER_DISALLOWED_TOOLS = ("Edit", "Write", "NotebookEdit")
+# The --permission-mode choices of Claude Code 2.1.329, and "default".
+CLAUDE_PERMISSION_MODES = ("default", "acceptEdits", "auto", "bypassPermissions", "manual", "dontAsk", "plan")
+CLAUDE_RULE_LISTS = ("allow", "ask", "deny", "additionalDirectories")
 # Codex writes this text when its sandbox cannot create the namespaces that it needs.
 SANDBOX_FAILURE = "bwrap: No permissions to create a new namespace"
 
@@ -69,7 +72,11 @@ def absolute(value: str, name: str) -> Path:
     path = Path(value)
     if not path.is_absolute():
         raise UsageError(f"--{name} must be an absolute path: {value}")
-    return path.resolve()
+    try:
+        return path.resolve()
+    except (OSError, RuntimeError) as error:
+        # Python 3.11 and 3.12 raise RuntimeError for a symbolic link loop.
+        raise UsageError(f"--{name} cannot be resolved: {value}: {error}") from error
 
 
 def runtime_value(value: str, name: str) -> str:
@@ -228,6 +235,7 @@ def permission_arguments(host: str, path: Path | None, origin: str) -> tuple[lis
             raise UsageError(f"{path}: not valid JSON: {error}") from error
         if not isinstance(settings, dict):
             raise UsageError(f"{path}: Claude settings must be a JSON object")
+        check_claude_permissions(path, settings)
         return ["--settings", str(path)], {"source": str(path), "origin": origin,
                                            "settings": {"permissions": settings.get("permissions")},
                                            "omitted_from_summary": sorted(set(settings) - {"permissions"})}
@@ -245,6 +253,29 @@ def permission_arguments(host: str, path: Path | None, origin: str) -> tuple[lis
             applied[key] = settings[key]
     ignored = sorted(set(settings) - set(CODEX_PERMISSION_KEYS))
     return arguments, {"source": str(path), "origin": origin, "settings": applied, "ignored_keys": ignored}
+
+
+def check_claude_permissions(path: Path, settings: dict[str, object]) -> None:
+    """Stop if the permissions field has an obvious error.
+
+    In print mode, Claude Code silently ignores a settings file that fails its
+    validation. The destination then runs with its other settings, although the
+    summary names this file. This check covers the permission fields only.
+    """
+    permissions = settings.get("permissions")
+    if permissions is None:
+        return
+    if not isinstance(permissions, dict):
+        raise UsageError(f"{path}: permissions must be a JSON object")
+    mode = permissions.get("defaultMode")
+    if mode is not None and mode not in CLAUDE_PERMISSION_MODES:
+        raise UsageError(f"{path}: permissions.defaultMode must be one of "
+                         f"{', '.join(CLAUDE_PERMISSION_MODES)}: {mode!r}")
+    for key in CLAUDE_RULE_LISTS:
+        value = permissions.get(key)
+        if value is not None and (not isinstance(value, list)
+                                  or not all(isinstance(item, str) for item in value)):
+            raise UsageError(f"{path}: permissions.{key} must be a list of strings")
 
 
 def run(command: list[str], cwd: Path, stdin: Path, stdout: Path, stderr: Path) -> tuple[int | None, str | None]:
@@ -375,7 +406,9 @@ def main() -> int:
                    "--json", "-o", str(files["report"]), "-"]
     else:
         command = ["claude", "-p", "--append-system-prompt-file", str(files["role_prompt"]),
-                   "--model", model, "--effort", effort, *permission_args]
+                   "--model", model, "--effort", effort,
+                   # Load no project or local settings: the branch of the worktree controls them.
+                   "--setting-sources", "user", *permission_args]
         if args.role == "researcher":
             command += ["--disallowedTools", *RESEARCHER_DISALLOWED_TOOLS]
         command += ["--output-format", "json"]

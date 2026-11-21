@@ -201,11 +201,13 @@ Launch Claude in the assigned worktree. The `--append-system-prompt-file` option
 
 The researcher options keep the direct editing-tool exclusions of the Claude adapter. These exclusions do not prevent writes from shell commands.
 
+The option `--setting-sources user` stops Claude Code from loading the project and local settings of the worktree, for example `.claude/settings.json`. The branch of the worktree controls these files, so they could change the permissions of the role. The launcher adds this option too. The file of `--settings` still applies. The launcher checks the `permissions` field of that file, because Claude Code silently ignores a settings file that fails its validation.
+
 ```bash
 (
   cd "$worktree" || exit
   claude -p --append-system-prompt-file "$role_prompt" \
-    --model "$model" --effort "$effort" \
+    --model "$model" --effort "$effort" --setting-sources user \
     "${claude_permissions[@]}" "${claude_role_options[@]}" \
     --output-format json < "$handoff" > "$events" 2> "$errors"
 )

@@ -245,6 +245,23 @@ class LaunchRoleTests(unittest.TestCase):
                     result = self.launch('claude', 'codex', *extra, '--dry-run', expect=2)
                     self.assertIn('is not a file', result.stderr)
 
+    def test_a_link_loop_stops_before_launch(self):
+        loop = self.base / 'loop'
+        loop.symlink_to(self.base / 'loop')
+        defaults = self.base / '.dev-team.toml'
+        defaults.write_text(f'[permissions]\ncodex = "{loop}"\n')
+        for extra in (('--permissions', loop), ('--project-defaults', loop), ('--project-defaults', defaults)):
+            with self.subTest(extra=extra[0]):
+                self.launch('claude', 'codex', *extra, '--dry-run', expect=2)
+
+    def test_invalid_claude_permission_fields_stop_before_launch(self):
+        settings = self.base / 'claude-settings.json'
+        for content in ({'permissions': {'defaultMode': 'bypassPermission'}}, {'permissions': []},
+                        {'permissions': {'allow': 'Bash'}}, {'permissions': {'deny': [1]}}):
+            with self.subTest(content=content):
+                settings.write_text(json.dumps(content))
+                self.launch('codex', 'claude', '--permissions', settings, '--dry-run', expect=2)
+
     def test_too_many_links_stop_before_launch(self):
         target = self.base / 'policy.toml'
         target.write_text('sandbox_mode = "workspace-write"\n')
@@ -348,7 +365,8 @@ class LaunchRoleTests(unittest.TestCase):
         role_prompt = self.output / 'role_prompt.md'
         self.assertEqual(record['args'], [
             '-p', '--append-system-prompt-file', str(role_prompt), '--model', 'test-model',
-            '--effort', 'high', '--settings', str(settings), '--output-format', 'json'])
+            '--effort', 'high', '--setting-sources', 'user', '--settings', str(settings),
+            '--output-format', 'json'])
         self.assertEqual(record['cwd'], str(self.worktree))
         self.assertEqual(record['stdin'], self.spec.read_text())
         self.assertEqual(role_prompt.read_text(), self.shared_role('implementer'))
