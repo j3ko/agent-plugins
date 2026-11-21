@@ -252,6 +252,13 @@ def main() -> int:
                 permissions, origin = from_table, f"permissions.{args.host} of --project-defaults"
         if not worktree.is_dir():
             raise UsageError(f"--worktree is not a directory: {worktree}")
+        # The role can change the files of its worktree, and a PR branch can change them before
+        # the launch. A permission source in the worktree could thus select its own policy.
+        sources = {"--project-defaults": absolute(args.project_defaults, "project-defaults")
+                   if args.project_defaults is not None else None, origin: permissions}
+        for name, path in sources.items():
+            if path is not None and (path == worktree or worktree in path.parents):
+                raise UsageError(f"{name} must be outside the worktree: {path}")
         if not spec.is_file():
             raise UsageError(f"--spec is not a file: {spec}")
         if output == worktree or worktree in output.parents:

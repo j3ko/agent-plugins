@@ -88,7 +88,9 @@ effort = "high"
 
 An optional `[permissions]` table names the permission file that you authorize for
 each destination host, for example `codex = "/etc/codex/config.toml"`. The launcher
-reads it, so that the orchestrator does not write a permission file of its own.
+reads it, so that the orchestrator does not write a permission file of its own. The
+orchestrator reads this table only from its main checkout, never from the worktree of
+a role, so that a branch cannot change the policy of its own roles.
 
 The orchestrator resolves shorthand such as `sol` using the selected host's available models.
 Before it launches an agent, it states the exact model and effort.

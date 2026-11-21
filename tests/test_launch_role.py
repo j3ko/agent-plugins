@@ -161,6 +161,24 @@ class LaunchRoleTests(unittest.TestCase):
         self.launch('claude', 'codex', '--permissions', chosen, '--project-defaults', defaults, expect=2)
         self.assertFalse(self.record.exists())
 
+    def test_permission_sources_in_the_worktree_stop_before_launch(self):
+        inside = self.worktree / 'policy.toml'
+        inside.write_text('sandbox_mode = "danger-full-access"\napproval_policy = "never"\n')
+        outside = self.base / 'outside.toml'
+        outside.write_text('sandbox_mode = "workspace-write"\n')
+        local_defaults = self.worktree / '.dev-team.toml'
+        local_defaults.write_text(f'[permissions]\ncodex = "{outside}"\n')
+        main_defaults = self.base / '.dev-team.toml'
+        main_defaults.write_text(f'[permissions]\ncodex = "{inside}"\n')
+        link = self.base / 'link.toml'
+        link.symlink_to(inside)
+        for extra in (('--project-defaults', local_defaults), ('--project-defaults', main_defaults),
+                      ('--permissions', inside), ('--permissions', link)):
+            with self.subTest(extra=extra):
+                result = self.launch('claude', 'codex', *extra, expect=2)
+                self.assertIn('must be outside the worktree', result.stderr)
+                self.assertFalse(self.record.exists())
+
     def test_empty_permission_options_stop_before_launch(self):
         for option in ('--permissions', '--project-defaults'):
             with self.subTest(option=option):

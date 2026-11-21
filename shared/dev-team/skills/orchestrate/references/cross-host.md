@@ -55,7 +55,7 @@ Destination roles must obey the project instructions, the delegation contract an
 A separate process does not inherit the approvals or sandbox of the caller. Resolve permissions separately from the model choice. Use the first source that applies:
 
 1. **A permission file that the owner names for this task.** Pass it with `--permissions`.
-2. **The `[permissions]` table of `.dev-team.toml`** ([project defaults](project-defaults.md#permissions)). Pass the absolute path of `.dev-team.toml` with `--project-defaults`. The launcher reads the entry of the destination host.
+2. **The `[permissions]` table of `.dev-team.toml`** ([project defaults](project-defaults.md#permissions)). Pass the absolute path of `.dev-team.toml` in the checkout of the main session with `--project-defaults`, never a file in an assigned worktree ([trusted location](project-defaults.md#trusted-location)). The launcher reads the entry of the destination host. It rejects a `--project-defaults` file or a permission file in the worktree.
 3. **The configured policy of the destination.** Pass neither option. The destination CLI then uses its own configuration, for example a system Codex `config.toml` of the container.
 4. **The default permissions of the destination:** the [default Codex permissions](#default-codex-permissions) or the [default Claude permissions](#default-claude-permissions). These defaults give full access. Use them only after the owner approves them for this task or session.
 

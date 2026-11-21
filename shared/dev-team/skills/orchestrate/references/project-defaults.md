@@ -2,7 +2,7 @@
 
 Before you select runtime settings, read `.dev-team.toml` at the project root.
 For Git projects, use the top-level directory of the current working tree.
-This includes an assigned worktree.
+This includes an assigned worktree, but not for the `[permissions]` table (see [Trusted location](#trusted-location)).
 For other projects, use the root that the project instructions identify.
 Read only the file at that root.
 If the file is absent, use the other sources in the precedence order.
@@ -38,7 +38,13 @@ Each value is the absolute path of a file: a Codex TOML file with `sandbox_mode`
 codex = "/etc/codex/config.toml"
 ```
 
-Give the path of `.dev-team.toml` to the launcher with `--project-defaults`.
+### Trusted location
+
+A branch can change `.dev-team.toml` and the files in its tree. A PR could thus give its own roles a wider policy. For this reason, read `[permissions]` only from the checkout of the main session, not from an assigned worktree. Make sure that the main checkout is on the default branch, and that its `[permissions]` table agrees with the default branch, for example with `git diff <default-branch> -- .dev-team.toml`. If it does not agree, stop and ask the owner. Each permission file that the table names must be outside the repository.
+
+The launcher rejects a `--project-defaults` file or a permission file in the `--worktree` directory. It cannot detect a changed table in the main checkout.
+
+Give the path of `.dev-team.toml` in the main checkout to the launcher with `--project-defaults`.
 The launcher reads the entry of the destination host.
 The [cross-host reference](cross-host.md#5-resolve-the-permissions) gives the order of the permission sources.
 The owner adds this table.
