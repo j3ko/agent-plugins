@@ -31,6 +31,8 @@ if mode == "exit3":
     raise SystemExit(3)
 if name == "codex":
     print(json.dumps({{"type": "event"}}))
+    if mode == "bwrap":
+        print(json.dumps({{"type": "exec", "output": "bwrap: No permissions to create a new namespace"}}))
     if mode != "empty":
         Path(args[args.index("-o") + 1]).write_text("codex final report\\n")
 elif mode == "malformed":
@@ -119,6 +121,51 @@ class LaunchRoleTests(unittest.TestCase):
         arguments = self.recorded()['args']
         self.assertEqual(arguments[0], 'exec')
         self.assertFalse(any('sandbox_mode' in item or 'approval_policy' in item for item in arguments))
+
+    def test_project_defaults_name_the_permission_file_of_the_host(self):
+        codex = self.base / 'codex.toml'
+        codex.write_text('sandbox_mode = "danger-full-access"\napproval_policy = "on-request"\n')
+        defaults = self.base / '.dev-team.toml'
+        defaults.write_text(f'[roles.reviewer]\nhost = "codex"\n\n[permissions]\ncodex = "{codex}"\n')
+        result = self.launch('claude', 'codex', '--project-defaults', defaults)
+        self.assertEqual(self.recorded()['args'][:4],
+                         ['-c', 'sandbox_mode="danger-full-access"', '-c', 'approval_policy="on-request"'])
+        self.assertEqual(json.loads(result.stdout)['permissions']['source'], str(codex))
+
+    def test_permissions_argument_has_priority_over_project_defaults(self):
+        chosen = self.base / 'chosen.toml'
+        chosen.write_text('sandbox_mode = "workspace-write"\n')
+        defaults = self.base / '.dev-team.toml'
+        defaults.write_text(f'[permissions]\ncodex = "{self.base / "absent.toml"}"\n')
+        self.launch('claude', 'codex', '--permissions', chosen, '--project-defaults', defaults)
+        self.assertEqual(self.recorded()['args'][:3], ['-c', 'sandbox_mode="workspace-write"', 'exec'])
+
+    def test_project_defaults_without_an_entry_for_the_host_add_no_overrides(self):
+        settings = self.base / 'claude.json'
+        settings.write_text('{}')
+        defaults = self.base / '.dev-team.toml'
+        defaults.write_text(f'[permissions]\nclaude = "{settings}"\n')
+        self.launch('claude', 'codex', '--project-defaults', defaults)
+        self.assertEqual(self.recorded()['args'][0], 'exec')
+
+    def test_invalid_project_defaults_stop_before_launch(self):
+        defaults = self.base / '.dev-team.toml'
+        for content in ('permissions = "x"\n', '[permissions]\ngemini = "/x"\n',
+                        '[permissions]\ncodex = "relative.toml"\n', '[permissions]\ncodex = 1\n',
+                        '[permissions\n'):
+            with self.subTest(content=content):
+                defaults.write_text(content)
+                self.launch('claude', 'codex', '--project-defaults', defaults, expect=2)
+                self.assertFalse(self.record.exists())
+                self.assertFalse(self.output.exists())
+        self.launch('claude', 'codex', '--project-defaults', self.base / 'absent.toml', expect=2)
+
+    def test_codex_sandbox_failure_fails_the_dispatch_although_codex_exits_with_0(self):
+        result = self.launch('claude', 'codex', mode='bwrap', expect=1)
+        summary = json.loads(result.stdout)
+        self.assertEqual(summary['status'], 'failed')
+        self.assertEqual(summary['exit_status'], 0)
+        self.assertTrue(any('sandbox could not start' in reason for reason in summary['reasons']))
 
     def test_invalid_permission_file_stops_before_launch(self):
         for name, content in (('type.toml', 'sandbox_mode = true\n'), ('syntax.toml', 'sandbox_mode = \n')):

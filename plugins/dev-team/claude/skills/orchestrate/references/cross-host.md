@@ -52,14 +52,16 @@ Destination roles must obey the project instructions, the delegation contract an
 
 ### 5. Resolve the permissions
 
-A separate process does not inherit the approvals or sandbox of the caller.
+A separate process does not inherit the approvals or sandbox of the caller. Resolve permissions separately from the model choice. Use the first source that applies:
 
-1. Resolve permissions separately from the model choice.
-2. Use the destination-host policy that the project authorizes.
-3. If the project authorizes no other policy, use the default permissions of the destination: the [default Codex permissions](#default-codex-permissions) or the [default Claude permissions](#default-claude-permissions).
-4. Before you start an implementer, make sure that the policy permits the necessary read, check, signing and network operations.
-5. If a project-authorized policy does not permit these operations, keep the work reviewable.
-6. Report the missing authorization.
+1. **A permission file that the owner names for this task.** Pass it with `--permissions`.
+2. **The `[permissions]` table of `.dev-team.toml`** ([project defaults](project-defaults.md#permissions)). Pass the absolute path of `.dev-team.toml` with `--project-defaults`. The launcher reads the entry of the destination host.
+3. **The configured policy of the destination.** Pass neither option. The destination CLI then uses its own configuration, for example a system Codex `config.toml` of the container.
+4. **The default permissions of the destination:** the [default Codex permissions](#default-codex-permissions) or the [default Claude permissions](#default-claude-permissions). Use them only after the configured policy failed, for example with the sandbox failure that the launcher reports. State this in your report to the owner.
+
+Do not write a permission file of your own while sources 1 to 3 apply. A permission file that an agent writes is different from the owner's settings. The permission check of the caller host can then deny the launch.
+
+Before you start an implementer, make sure that the policy permits the necessary read, check, signing and network operations. If a project-authorized policy does not permit these operations, keep the work reviewable, and report the missing authorization.
 
 ## Launch the role
 
@@ -69,16 +71,16 @@ Use the launcher `scripts/launch_role.py` in the directory of the orchestrate sk
 python3 "$skill_dir/scripts/launch_role.py" \
   --role "$role" --host "$host" --model "$model" --effort "$effort" \
   --worktree "$worktree" --spec "$spec" --output-dir "$dispatch" \
-  --permissions "$permission_config"
+  --project-defaults "$project_root/.dev-team.toml"
 ```
 
-All paths must be absolute. Use a new `--output-dir` outside the worktree for each dispatch. The launcher does not replace the files of an earlier dispatch.
+Replace `--project-defaults` with `--permissions "$permission_config"` for source 1 of [Resolve the permissions](#5-resolve-the-permissions). Leave out both options for source 3. All paths must be absolute. Use a new `--output-dir` outside the worktree for each dispatch. The launcher does not replace the files of an earlier dispatch.
 
 The launcher does these steps:
 
 1. It copies the role instructions from its own package.
 2. It builds the handoff from the role instructions and the spec file.
-3. It reads the permission file that `--permissions` names.
+3. It reads the permission file that `--permissions` names, or the entry of the destination host in the `[permissions]` table of the `--project-defaults` file.
 4. It prints the resolved settings and the command to stderr.
 5. It runs the destination CLI in the worktree.
 6. It writes `role_prompt.md`, `handoff.md`, the events, `errors.log`, `report.md` and `dispatch.json` to the output directory.
@@ -88,12 +90,12 @@ To inspect the settings and the command without a launch, add `--dry-run`. A dry
 
 ### Permission file
 
-Pass the permission file that the project authorizes. Without such a file, pass a file with the defaults below. The launcher reads no other permission source.
+The launcher reads a permission file only from `--permissions`, or from the `[permissions]` entry of the destination host in the `--project-defaults` file. `--permissions` has priority. Without either, the launcher adds no permission arguments, and the configured policy of the destination stays in effect.
 
 - Codex: a TOML file. The launcher reads only the `sandbox_mode` and `approval_policy` fields and passes them as invocation overrides. The summary lists the other keys as `ignored_keys`. With Codex CLI 0.167.0, a `codex exec` session used the `sandbox_mode` of the file. But it recorded the approval policy `never` when the file gave `on-request`. Thus, do not rely on approval requests in a launched Codex role.
 - Claude: a settings JSON file. The launcher passes its path with `--settings`.
 
-If the project authorizes no file, use these defaults:
+Use the defaults below only for source 4 of [Resolve the permissions](#5-resolve-the-permissions):
 
 - Codex: write the [default Codex permissions](#default-codex-permissions) to `$dispatch/codex-permissions.toml`. Pass that path with `--permissions`.
 - Claude: write the [default Claude permissions](#default-claude-permissions) to `$dispatch/claude-settings.json`. Pass that path with `--permissions`.
@@ -102,13 +104,13 @@ If the project authorizes no file, use these defaults:
 
 ```toml
 sandbox_mode = "danger-full-access"
-approval_policy = "never"
+approval_policy = "on-request"
 ```
 
 These settings turn off the inner sandbox of Codex. The container or the machine is then the only isolation boundary. Use them for these reasons:
 
 - The `read-only` and `workspace-write` modes need `bwrap` namespaces. Many containers cannot create these namespaces. In such a container, every shell command fails with `bwrap: No permissions to create a new namespace`. With Codex CLI 0.171.0, the role then reported a block and changed no files.
-- A `codex exec` session does not ask for approvals, so `on-request` gives no protection. The value `never` records this behavior explicitly.
+- A `codex exec` session does not ask for approvals. With Codex CLI 0.167.0, it recorded the policy `never` when the file gave `on-request`. Thus the value has no effect on a launched role. The default uses `on-request`, so that it agrees with a configured policy that uses `on-request`.
 
 Because the role has full access, state the limits of the role in the spec. For example, state the files in scope, "Do not merge" and the network operations that the role can do. A researcher or a reviewer has full access too. Its role instructions do not make the session read-only.
 
@@ -126,7 +128,17 @@ This setting turns off the permission checks of Claude Code. The container or th
 
 The limits for the default Codex permissions also apply here. In the spec, state the files in scope and "Do not merge". Also forbid changes to credentials, deployments and persistent settings. For a researcher, the launcher also removes the direct editing tools. Shell writes are still possible.
 
-The owner can give the host a permission rule for this one command. Do not add or change that rule yourself.
+### Permission rule for the launcher
+
+In Claude Code, the permission check examines the Bash command that starts the launcher. It does not examine the `codex` or `claude` command inside it. A rule for `codex ... exec` thus does not match a launch. Without a rule for the launcher, the auto-mode classifier decides each launch. It can deny a launch that gives a sandbox no limits.
+
+The owner can add this rule to the `permissions.allow` list of the Claude Code settings:
+
+```json
+"Bash(python3 */skills/orchestrate/scripts/launch_role.py *)"
+```
+
+The `*` before `/skills/` matches the plugin cache directory, which changes with each plugin version. For the rule to match, run the launcher as one command: start the command with `python3`, put no variable assignment before it, and join no other command to it with `&&`, `;` or `|`. Do not add or change the rule yourself. If a launch is denied, stop and report the denial to the owner.
 
 ### Exit status
 
@@ -142,8 +154,9 @@ The launcher gives exit status 1 for these conditions:
 - The report is missing or empty.
 - The Claude output is malformed or is not a success.
 - The Claude output lists permission denials.
+- The Codex output or errors contain `bwrap: No permissions to create a new namespace`: the Codex sandbox could not start. Codex can exit with 0 in this case.
 
-Exit status 0 does not show that the work is complete. The launcher does not detect Codex permission denials or blockers that the role reports. Read the report and do the checks in "Verify the result".
+Exit status 0 does not show that the work is complete. The launcher does not detect other Codex permission denials or blockers that the role reports. Read the report and do the checks in "Verify the result".
 
 ## Manual launch
 
@@ -154,7 +167,7 @@ Use the commands below only if the launcher is not available. They are the comma
 Set `codex_permissions` as a Bash array. The array below holds the [default Codex permissions](#default-codex-permissions). If the project authorizes a different Codex policy, use its settings instead. Keep the role body in `handoff`, because `codex exec` does not select one of our custom roles by name.
 
 ```bash
-codex_permissions=(-c 'sandbox_mode="danger-full-access"' -c 'approval_policy="never"')
+codex_permissions=(-c 'sandbox_mode="danger-full-access"' -c 'approval_policy="on-request"')
 codex "${codex_permissions[@]}" exec -C "$worktree" \
   --model "$model" -c "model_reasoning_effort=\"$effort\"" \
   --json -o "$report" - < "$handoff" > "$events" 2> "$errors"
@@ -164,11 +177,11 @@ Pass model and effort values from the supported host catalog as quoted arguments
 
 The evaluated Codex CLI does not have a general `--config-file` flag. The project can authorize a dedicated permission TOML file. If it does, read the `sandbox_mode` and `approval_policy` fields from that file. Pass each field as an invocation override in the format `-c key="value"`. Do not replace `CODEX_HOME`, copy authentication or change installed configuration.
 
-A `bwrap` namespace failure shows that the policy in effect needs a sandbox that the destination cannot create. Do these checks:
+A `bwrap` namespace failure shows that the policy in effect needs a sandbox that the destination cannot create. The launcher reports it as a failed dispatch. Do these checks:
 
-1. For a launcher dispatch, make sure that `--permissions` named the file with the default Codex permissions.
+1. If the launch used the configured policy of the destination (source 3 of [Resolve the permissions](#5-resolve-the-permissions)), launch again with the default Codex permissions. Report this to the owner.
 2. For a manual launch, make sure that the command includes `codex_permissions`.
-3. If the project authorized a different policy, do not change it. Report the block to the owner.
+3. If the owner authorized the policy (source 1 or 2), do not change it. Report the block to the owner.
 
 ### Codex to Claude
 

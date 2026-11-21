@@ -4,8 +4,9 @@
 The launcher builds the handoff from the packaged role instructions and a spec
 file, starts the destination CLI in the assigned worktree and collects the
 report. It reads permission settings only from the file that --permissions
-names. Without --permissions, the configured policy of the destination stays
-in effect. The launcher does not install software and does not change
+names, or from the file that the [permissions] table of the --project-defaults
+file names for the destination host. Without either, the configured policy of
+the destination stays in effect. The launcher does not install software and does not change
 persistent configuration.
 
 Exit status: 0 = the report is collected, 1 = the dispatch failed,
@@ -25,6 +26,8 @@ PACKAGE = Path(__file__).resolve().parents[3]
 ROLES = ("implementer", "researcher", "reviewer")
 CODEX_PERMISSION_KEYS = ("sandbox_mode", "approval_policy")
 RESEARCHER_DISALLOWED_TOOLS = ("Edit", "Write", "NotebookEdit")
+# Codex writes this text when its sandbox cannot create the namespaces that it needs.
+SANDBOX_FAILURE = "bwrap: No permissions to create a new namespace"
 
 
 class UsageError(Exception):
@@ -70,6 +73,39 @@ def runtime_value(value: str, name: str) -> str:
     if not value or value.startswith("-") or not value.isprintable() or any(c.isspace() for c in value):
         raise UsageError(f"--{name} is not a valid value: {value!r}")
     return value
+
+
+def project_permissions(host: str, defaults: Path) -> Path | None:
+    """Return the permission file that the project defaults name for the host."""
+    if not defaults.is_file():
+        raise UsageError(f"--project-defaults is not a file: {defaults}")
+    try:
+        data = tomllib.loads(defaults.read_text())
+    except tomllib.TOMLDecodeError as error:
+        raise UsageError(f"{defaults}: not valid TOML: {error}") from error
+    table = data.get("permissions", {})
+    if not isinstance(table, dict):
+        raise UsageError(f"{defaults}: [permissions] must be a table")
+    unknown = sorted(set(table) - {"claude", "codex"})
+    if unknown:
+        raise UsageError(f"{defaults}: [permissions] has unknown keys: {', '.join(unknown)}")
+    value = table.get(host)
+    if value is None:
+        return None
+    if not isinstance(value, str) or not value:
+        raise UsageError(f"{defaults}: permissions.{host} must be a nonempty string")
+    return absolute(value, f"project-defaults permissions.{host}")
+
+
+def sandbox_failed(*paths: Path) -> bool:
+    """True if the Codex output shows that its sandbox could not start."""
+    for path in paths:
+        try:
+            if SANDBOX_FAILURE in path.read_text(errors="replace"):
+                return True
+        except OSError:
+            continue
+    return False
 
 
 def permission_arguments(host: str, path: Path | None) -> tuple[list[str], dict[str, object]]:
@@ -160,6 +196,8 @@ def main() -> int:
     parser.add_argument("--output-dir", required=True, help="Absolute dispatch directory outside the worktree")
     parser.add_argument("--permissions", help="Absolute path of the permission file that the project authorizes "
                         "(Codex: TOML with sandbox_mode and approval_policy; Claude: settings JSON)")
+    parser.add_argument("--project-defaults", help="Absolute path of the project's .dev-team.toml. Its "
+                        "[permissions] table names the permission file of each host. --permissions has priority")
     parser.add_argument("--dry-run", action="store_true", help="Print the settings and the command; write no files and do not launch")
     args = parser.parse_args()
 
@@ -170,6 +208,8 @@ def main() -> int:
         spec = absolute(args.spec, "spec")
         output = absolute(args.output_dir, "output-dir")
         permissions = absolute(args.permissions, "permissions") if args.permissions else None
+        if permissions is None and args.project_defaults:
+            permissions = project_permissions(args.host, absolute(args.project_defaults, "project-defaults"))
         if not worktree.is_dir():
             raise UsageError(f"--worktree is not a directory: {worktree}")
         if not spec.is_file():
@@ -236,6 +276,10 @@ def main() -> int:
         if args.host == "claude":
             claude_reasons, models = collect_claude(files["events"], files["report"])
             reasons += claude_reasons
+        elif sandbox_failed(files["events"], files["errors"]):
+            # Codex can exit with 0 although each of its shell commands failed.
+            reasons.append(f"the Codex sandbox could not start ({SANDBOX_FAILURE!r}); "
+                           "the permission policy needs a sandbox that this environment cannot create")
         if not files["report"].is_file() or not files["report"].read_text().strip():
             reasons.append("the report is missing or empty")
     summary.update({

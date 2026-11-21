@@ -16,7 +16,7 @@ Read the reference for the host that you use:
 
 ## Runtime selection
 
-Before you launch a role, check the project root for `.dev-team.toml`. If the file exists, read the [project defaults reference](references/project-defaults.md) and the file. Resolve the host, model and effort for that role. Use this order of precedence for each field:
+Before you launch a role, check the project root for `.dev-team.toml`. If the file exists, read the [project defaults reference](references/project-defaults.md) and the file. Resolve the host, model and effort for that role. Resolve the permissions as the [cross-host reference](references/cross-host.md#5-resolve-the-permissions) gives. Use this order of precedence for each field:
 
 1. The choice of the owner for this task.
 2. The session preference of the owner.

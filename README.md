@@ -86,6 +86,10 @@ model = "sol"
 effort = "high"
 ```
 
+An optional `[permissions]` table names the permission file that you authorize for
+each destination host, for example `codex = "/etc/codex/config.toml"`. The launcher
+reads it, so that the orchestrator does not write a permission file of its own.
+
 The orchestrator resolves shorthand such as `sol` using the selected host's available models.
 Before it launches an agent, it states the exact model and effort.
 If a selection is ambiguous or unavailable, it asks you to choose an alternative.

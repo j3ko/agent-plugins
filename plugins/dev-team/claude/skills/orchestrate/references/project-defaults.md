@@ -26,7 +26,25 @@ Use nonempty strings for their values.
 | `effort` | Reasoning effort that the selected host and model support. |
 
 For an omitted role or field, use the next source in the precedence order in the skill.
-Check the TOML syntax, table names, field names and value types before you use the file.
+
+## Permissions
+
+The optional `[permissions]` table names the permission file that the owner authorizes for a role on each host.
+It accepts the optional fields `codex` and `claude`.
+Each value is the absolute path of a file: a Codex TOML file with `sandbox_mode` and `approval_policy`, or a Claude Code settings JSON file.
+
+```toml
+[permissions]
+codex = "/etc/codex/config.toml"
+```
+
+Give the path of `.dev-team.toml` to the launcher with `--project-defaults`.
+The launcher reads the entry of the destination host.
+The [cross-host reference](cross-host.md#5-resolve-the-permissions) gives the order of the permission sources.
+The owner adds this table.
+It is the record of an authorization that the owner already gave.
+Do not add a path to it yourself.
+Check the TOML syntax, table names, field names and value types before you use the file. The valid tables are the three `[roles.*]` tables and `[permissions]`.
 If the configuration is invalid, report the error and ask the owner to correct it.
 Wait for the correction before you launch an affected role.
 Keep the file unchanged.
@@ -35,6 +53,9 @@ Keep the file unchanged.
 
 Interpret model shorthand using the selected host's available model information.
 Use the host's model catalog, installed documentation or verified official documentation.
+
+- Codex: the `models` list of `models_cache.json` in the Codex home directory (`$CODEX_HOME`, by default `~/.codex`). Codex CLI updates this file. Check its `fetched_at` time.
+- Claude Code: the `--model` option accepts the aliases `opus`, `sonnet` and `haiku`, and full model IDs.
 This plugin has no fixed alias mapping.
 For example, `sol` expresses a Sol model preference.
 Resolve it to a supported model ID before you launch the role.
