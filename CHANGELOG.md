@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.0](https://github.com/j3ko/agent-plugins/compare/v0.9.0...v0.10.0) (2026-11-21)
+
+
+### Features
+
+* **orchestrate:** read the permission file from .dev-team.toml ([#39](https://github.com/j3ko/agent-plugins/issues/39)) ([c242426](https://github.com/j3ko/agent-plugins/commit/c2424263002736e8cb1df749bbd5bb53ca8e042b))
+
 ## [0.9.0](https://github.com/j3ko/agent-plugins/compare/v0.8.0...v0.9.0) (2026-11-20)
 
 
