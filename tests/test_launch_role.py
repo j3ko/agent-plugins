@@ -213,6 +213,38 @@ class LaunchRoleTests(unittest.TestCase):
                 result = self.launch('claude', 'codex', *extra, '--dry-run', expect=2)
                 self.assertIn('must be outside the worktree', result.stderr)
 
+    def test_a_worktree_path_with_a_link_and_dotdot_does_not_reject_outside_files(self):
+        actual = self.base / 'actual'
+        (actual / 'deep').mkdir(parents=True)
+        (actual / 'role').mkdir()
+        (self.base / 'alias').symlink_to(actual / 'deep')
+        # The text base/alias/../role names base/role, but the worktree is actual/role.
+        lexical = self.base / 'role'
+        lexical.mkdir()
+        policy = lexical / 'policy.toml'
+        policy.write_text('sandbox_mode = "workspace-write"\n')
+        result = self.launch('claude', 'codex', '--worktree', f'{self.base}/alias/../role',
+                             '--permissions', policy, '--dry-run')
+        self.assertEqual(json.loads(result.stdout)['worktree'], str(actual / 'role'))
+        inside = actual / 'role' / 'policy.toml'
+        inside.write_text('sandbox_mode = "danger-full-access"\n')
+        result = self.launch('claude', 'codex', '--worktree', f'{self.base}/alias/../role',
+                             '--permissions', inside, '--dry-run', expect=2)
+        self.assertIn('must be outside the worktree', result.stderr)
+
+    def test_paths_that_the_system_does_not_open_as_files_stop_before_launch(self):
+        policy = self.base / 'policy.toml'
+        policy.write_text('sandbox_mode = "workspace-write"\n')
+        plain = self.base / 'plain-file'
+        plain.write_text('x')
+        for raw in (f'{self.base}/missing-dir/../policy.toml', f'{plain}/../policy.toml', f'{policy}/'):
+            defaults = self.base / '.dev-team.toml'
+            defaults.write_text(f'[permissions]\ncodex = "{raw}"\n')
+            for extra in (('--permissions', raw), ('--project-defaults', defaults)):
+                with self.subTest(raw=raw, extra=extra[0]):
+                    result = self.launch('claude', 'codex', *extra, '--dry-run', expect=2)
+                    self.assertIn('is not a file', result.stderr)
+
     def test_too_many_links_stop_before_launch(self):
         target = self.base / 'policy.toml'
         target.write_text('sandbox_mode = "workspace-write"\n')

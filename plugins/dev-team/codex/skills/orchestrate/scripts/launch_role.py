@@ -136,6 +136,16 @@ def outside_worktree(raw: str, name: str, worktrees: tuple[Path, ...]) -> None:
                 raise UsageError(f"{name} must be outside the worktree: {raw}")
 
 
+def existing_file(raw: str, name: str) -> None:
+    """Stop if the operating system does not open the path as given as a file.
+
+    Path.resolve() applies ".." to the text after a missing directory, and it
+    removes a final "/". The check thus uses the path as given.
+    """
+    if not os.path.isfile(raw):
+        raise UsageError(f"{name} is not a file: {raw}")
+
+
 def project_permissions(host: str, defaults: Path, worktrees: tuple[Path, ...]) -> Path | None:
     """Return the permission file that the project defaults name for the host.
 
@@ -161,8 +171,7 @@ def project_permissions(host: str, defaults: Path, worktrees: tuple[Path, ...]) 
             raise UsageError(f"{defaults}: permissions.{key} must be a nonempty string")
         paths[key] = absolute(value, f"project-defaults permissions.{key}")
         outside_worktree(value, name, worktrees)
-        if not paths[key].is_file():
-            raise UsageError(f"{name} is not a file: {paths[key]}")
+        existing_file(value, name)
     return paths.get(host)
 
 
@@ -313,13 +322,17 @@ def main() -> int:
         if not worktree.is_dir():
             raise UsageError(f"--worktree is not a directory: {worktree}")
         # Check the permission sources before the launcher reads them.
-        worktrees = (Path(os.path.normpath(args.worktree)), worktree)
+        # Use only the resolved worktree as the boundary. A lexical form of the --worktree
+        # text can name a different directory, if the text has a link followed by "..".
+        worktrees = (worktree,)
         if permissions is not None:
             outside_worktree(args.permissions, "--permissions", worktrees)
+            existing_file(args.permissions, "--permissions")
         origin = "--permissions"
         if args.project_defaults is not None:
             defaults = absolute(args.project_defaults, "project-defaults")
             outside_worktree(args.project_defaults, "--project-defaults", worktrees)
+            existing_file(args.project_defaults, "--project-defaults")
             # Check the table also when --permissions has priority, so that an error in it is reported.
             from_table = project_permissions(args.host, defaults, worktrees)
             if permissions is None and from_table is not None:
