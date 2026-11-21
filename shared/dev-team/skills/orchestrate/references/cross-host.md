@@ -57,9 +57,11 @@ A separate process does not inherit the approvals or sandbox of the caller. Reso
 1. **A permission file that the owner names for this task.** Pass it with `--permissions`.
 2. **The `[permissions]` table of `.dev-team.toml`** ([project defaults](project-defaults.md#permissions)). Pass the absolute path of `.dev-team.toml` with `--project-defaults`. The launcher reads the entry of the destination host.
 3. **The configured policy of the destination.** Pass neither option. The destination CLI then uses its own configuration, for example a system Codex `config.toml` of the container.
-4. **The default permissions of the destination:** the [default Codex permissions](#default-codex-permissions) or the [default Claude permissions](#default-claude-permissions). Use them only after the configured policy failed, for example with the sandbox failure that the launcher reports. State this in your report to the owner.
+4. **The default permissions of the destination:** the [default Codex permissions](#default-codex-permissions) or the [default Claude permissions](#default-claude-permissions). These defaults give full access. Use them only after the owner approves them for this task or session.
 
-Do not write a permission file of your own while sources 1 to 3 apply. A permission file that an agent writes is different from the owner's settings. The permission check of the caller host can then deny the launch.
+If the configured policy fails, for example with the sandbox failure that the launcher reports, stop. Report the failure to the owner, and ask whether to use the defaults. The configured policy can be a limit that an administrator set on purpose. Do not widen the access yourself.
+
+Do not write a permission file of your own for sources 1 to 3. A permission file that an agent writes is different from the owner's settings. The permission check of the caller host can then deny the launch.
 
 Before you start an implementer, make sure that the policy permits the necessary read, check, signing and network operations. If a project-authorized policy does not permit these operations, keep the work reviewable, and report the missing authorization.
 
@@ -74,7 +76,7 @@ python3 "$skill_dir/scripts/launch_role.py" \
   --project-defaults "$project_root/.dev-team.toml"
 ```
 
-Replace `--project-defaults` with `--permissions "$permission_config"` for source 1 of [Resolve the permissions](#5-resolve-the-permissions). Leave out both options for source 3. All paths must be absolute. Use a new `--output-dir` outside the worktree for each dispatch. The launcher does not replace the files of an earlier dispatch.
+Add `--project-defaults` only if `.dev-team.toml` exists. Without the file, the launcher stops with exit status 2. Add `--permissions "$permission_config"` for source 1 or source 4 of [Resolve the permissions](#5-resolve-the-permissions). For source 3, the command has neither option, or a `.dev-team.toml` without an entry for the destination host. The launcher rejects an empty value for either option, so that an unset variable does not silently select the configured policy. All paths must be absolute. Use a new `--output-dir` outside the worktree for each dispatch. The launcher does not replace the files of an earlier dispatch.
 
 The launcher does these steps:
 
@@ -90,12 +92,12 @@ To inspect the settings and the command without a launch, add `--dry-run`. A dry
 
 ### Permission file
 
-The launcher reads a permission file only from `--permissions`, or from the `[permissions]` entry of the destination host in the `--project-defaults` file. `--permissions` has priority. Without either, the launcher adds no permission arguments, and the configured policy of the destination stays in effect.
+The launcher reads a permission file only from `--permissions`, or from the `[permissions]` entry of the destination host in the `--project-defaults` file. `--permissions` has priority. The launcher checks the `--project-defaults` file also when `--permissions` is given. Without either option, the launcher adds no permission arguments, and the configured policy of the destination stays in effect.
 
 - Codex: a TOML file. The launcher reads only the `sandbox_mode` and `approval_policy` fields and passes them as invocation overrides. The summary lists the other keys as `ignored_keys`. With Codex CLI 0.167.0, a `codex exec` session used the `sandbox_mode` of the file. But it recorded the approval policy `never` when the file gave `on-request`. Thus, do not rely on approval requests in a launched Codex role.
-- Claude: a settings JSON file. The launcher passes its path with `--settings`.
+- Claude: a settings JSON file. The launcher passes its path with `--settings`. The summary shows only the `permissions` field of the file and lists the other keys as `ignored_keys`, because a settings file can hold tokens, for example in `env`.
 
-Use the defaults below only for source 4 of [Resolve the permissions](#5-resolve-the-permissions):
+Use the defaults below only for source 4 of [Resolve the permissions](#5-resolve-the-permissions), after the owner approves them:
 
 - Codex: write the [default Codex permissions](#default-codex-permissions) to `$dispatch/codex-permissions.toml`. Pass that path with `--permissions`.
 - Claude: write the [default Claude permissions](#default-claude-permissions) to `$dispatch/claude-settings.json`. Pass that path with `--permissions`.
@@ -104,13 +106,13 @@ Use the defaults below only for source 4 of [Resolve the permissions](#5-resolve
 
 ```toml
 sandbox_mode = "danger-full-access"
-approval_policy = "on-request"
+approval_policy = "never"
 ```
 
 These settings turn off the inner sandbox of Codex. The container or the machine is then the only isolation boundary. Use them for these reasons:
 
 - The `read-only` and `workspace-write` modes need `bwrap` namespaces. Many containers cannot create these namespaces. In such a container, every shell command fails with `bwrap: No permissions to create a new namespace`. With Codex CLI 0.171.0, the role then reported a block and changed no files.
-- A `codex exec` session does not ask for approvals. With Codex CLI 0.167.0, it recorded the policy `never` when the file gave `on-request`. Thus the value has no effect on a launched role. The default uses `on-request`, so that it agrees with a configured policy that uses `on-request`.
+- A `codex exec` session does not ask for approvals, so `on-request` gives no protection. The value `never` records this behavior explicitly. Do not change it to make the policy look narrower than it is.
 
 Because the role has full access, state the limits of the role in the spec. For example, state the files in scope, "Do not merge" and the network operations that the role can do. A researcher or a reviewer has full access too. Its role instructions do not make the session read-only.
 
@@ -130,15 +132,16 @@ The limits for the default Codex permissions also apply here. In the spec, state
 
 ### Permission rule for the launcher
 
-In Claude Code, the permission check examines the Bash command that starts the launcher. It does not examine the `codex` or `claude` command inside it. A rule for `codex ... exec` thus does not match a launch. Without a rule for the launcher, the auto-mode classifier decides each launch. It can deny a launch that gives a sandbox no limits.
+In Claude Code, the permission check examines the Bash command that starts the launcher. It does not examine the `codex` or `claude` command inside it. A rule for `codex ... exec` thus does not match a launch. Without a rule for the launcher, the permission check or the auto-mode classifier decides each launch. The classifier can deny a launch that gives a sandbox no limits.
 
-The owner can add this rule to the `permissions.allow` list of the Claude Code settings:
+This plugin does not recommend an allow rule for the launcher. Such a rule has these risks:
 
-```json
-"Bash(python3 */skills/orchestrate/scripts/launch_role.py *)"
-```
+- The launcher accepts any `--permissions` file. A rule for the launcher thus allows a launch with any policy, also full access, that the caller selects.
+- A wildcard in the path, for example `Bash(python3 */launch_role.py *)`, also matches a script with the same name in a worktree or a temporary directory. That script can do anything without a permission check.
 
-The `*` before `/skills/` matches the plugin cache directory, which changes with each plugin version. For the rule to match, run the launcher as one command: start the command with `python3`, put no variable assignment before it, and join no other command to it with `&&`, `;` or `|`. Do not add or change the rule yourself. If a launch is denied, stop and report the denial to the owner.
+If the owner adds a rule, it must name the absolute path of the installed launcher, without a wildcard in the path. That path changes with each plugin version. Do not add or change the rule yourself. If a launch is denied, stop and report the denial to the owner.
+
+For an owner rule or the classifier to examine the correct command, run the launcher as one command: start the command with `python3`, put no variable assignment before it, and join no other command to it with `&&`, `;` or `|`.
 
 ### Exit status
 
@@ -154,7 +157,7 @@ The launcher gives exit status 1 for these conditions:
 - The report is missing or empty.
 - The Claude output is malformed or is not a success.
 - The Claude output lists permission denials.
-- The Codex output or errors contain `bwrap: No permissions to create a new namespace`: the Codex sandbox could not start. Codex can exit with 0 in this case.
+- The Codex sandbox could not start: a failed Codex command gave output that starts with `bwrap: No permissions to create a new namespace`, or the Codex errors contain this text. Codex can exit with 0 in this case. The launcher ignores this text in role messages and in the output of commands that succeed.
 
 Exit status 0 does not show that the work is complete. The launcher does not detect other Codex permission denials or blockers that the role reports. Read the report and do the checks in "Verify the result".
 
@@ -164,10 +167,15 @@ Use the commands below only if the launcher is not available. They are the comma
 
 ### Claude to Codex
 
-Set `codex_permissions` as a Bash array. The array below holds the [default Codex permissions](#default-codex-permissions). If the project authorizes a different Codex policy, use its settings instead. Keep the role body in `handoff`, because `codex exec` does not select one of our custom roles by name.
+Set `codex_permissions` as a Bash array. Use the first source that applies in [Resolve the permissions](#5-resolve-the-permissions):
+
+- Source 1 or 2: read the `sandbox_mode` and `approval_policy` fields of the file, as the paragraph after the command gives.
+- Source 3: an empty array, `codex_permissions=()`. Codex then uses its configured policy.
+- Source 4, after the owner approves it: the [default Codex permissions](#default-codex-permissions), `codex_permissions=(-c 'sandbox_mode="danger-full-access"' -c 'approval_policy="never"')`.
+
+Keep the role body in `handoff`, because `codex exec` does not select one of our custom roles by name.
 
 ```bash
-codex_permissions=(-c 'sandbox_mode="danger-full-access"' -c 'approval_policy="on-request"')
 codex "${codex_permissions[@]}" exec -C "$worktree" \
   --model "$model" -c "model_reasoning_effort=\"$effort\"" \
   --json -o "$report" - < "$handoff" > "$events" 2> "$errors"
@@ -179,16 +187,16 @@ The evaluated Codex CLI does not have a general `--config-file` flag. The projec
 
 A `bwrap` namespace failure shows that the policy in effect needs a sandbox that the destination cannot create. The launcher reports it as a failed dispatch. Do these checks:
 
-1. If the launch used the configured policy of the destination (source 3 of [Resolve the permissions](#5-resolve-the-permissions)), launch again with the default Codex permissions. Report this to the owner.
-2. For a manual launch, make sure that the command includes `codex_permissions`.
-3. If the owner authorized the policy (source 1 or 2), do not change it. Report the block to the owner.
+1. For a manual launch, make sure that the command includes `codex_permissions`.
+2. Do not change the policy yourself. This applies to each source, also to the configured policy of the destination (source 3).
+3. Report the block to the owner. If the launch used source 3, ask whether to launch again with the default Codex permissions (source 4).
 
 ### Codex to Claude
 
 Launch Claude in the assigned worktree. The `--append-system-prompt-file` option transfers the extracted shared role instructions. With this option, the destination does not need an installation of the plugin.
 
-1. If the project authorizes a Claude settings file, set `claude_settings` to its absolute path. Otherwise, select an absolute path for `claude_settings` and write the [default Claude permissions](#default-claude-permissions) to that file.
-2. After you select the settings file, set `claude_permissions=(--settings "$claude_settings")`.
+1. Use the first source that applies in [Resolve the permissions](#5-resolve-the-permissions). For source 1 or 2, set `claude_settings` to the absolute path of that file. For source 4, after the owner approves it, select an absolute path for `claude_settings` and write the [default Claude permissions](#default-claude-permissions) to that file.
+2. If you selected a settings file, set `claude_permissions=(--settings "$claude_settings")`. For source 3, set `claude_permissions=()`.
 3. For a researcher, also set `claude_role_options=(--disallowedTools Edit Write NotebookEdit)`.
 
 The researcher options keep the direct editing-tool exclusions of the Claude adapter. These exclusions do not prevent writes from shell commands.

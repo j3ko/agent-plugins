@@ -97,23 +97,45 @@ def project_permissions(host: str, defaults: Path) -> Path | None:
     return absolute(value, f"project-defaults permissions.{host}")
 
 
-def sandbox_failed(*paths: Path) -> bool:
-    """True if the Codex output shows that its sandbox could not start."""
-    for path in paths:
+def sandbox_failed(events: Path, errors: Path) -> bool:
+    """True if the Codex output shows that its sandbox could not start.
+
+    The events also hold the output of the commands of the role and its messages.
+    A role that only reads or quotes the diagnostic must not fail the dispatch.
+    Thus, match only a failed command whose output starts with the diagnostic,
+    or the diagnostic in the errors of the Codex CLI.
+    """
+    try:
+        if SANDBOX_FAILURE in errors.read_text(errors="replace"):
+            return True
+        lines = events.read_text(errors="replace").splitlines()
+    except OSError:
+        return False
+    for line in lines:
         try:
-            if SANDBOX_FAILURE in path.read_text(errors="replace"):
-                return True
-        except OSError:
+            event = json.loads(line)
+        except json.JSONDecodeError:
             continue
+        item = event.get("item") if isinstance(event, dict) else None
+        if (event.get("type") == "item.completed" and isinstance(item, dict)
+                and item.get("type") == "command_execution"
+                and item.get("exit_code") not in (0, None)
+                and str(item.get("aggregated_output", "")).lstrip().startswith(SANDBOX_FAILURE)):
+            return True
     return False
 
 
-def permission_arguments(host: str, path: Path | None) -> tuple[list[str], dict[str, object]]:
-    """Return the CLI arguments and a description of the permission settings."""
+def permission_arguments(host: str, path: Path | None, origin: str) -> tuple[list[str], dict[str, object]]:
+    """Return the CLI arguments and a description of the permission settings.
+
+    The description names the file and the permission fields only. A Claude
+    settings file can hold other values, for example environment variables with
+    tokens, and the summary goes to stdout, stderr and dispatch.json.
+    """
     if path is None:
         return [], {"source": None, "note": "the configured policy of the destination stays in effect"}
     if not path.is_file():
-        raise UsageError(f"--permissions is not a file: {path}")
+        raise UsageError(f"{origin} is not a file: {path}")
     if host == "claude":
         try:
             settings = json.loads(path.read_text())
@@ -121,7 +143,9 @@ def permission_arguments(host: str, path: Path | None) -> tuple[list[str], dict[
             raise UsageError(f"{path}: not valid JSON: {error}") from error
         if not isinstance(settings, dict):
             raise UsageError(f"{path}: Claude settings must be a JSON object")
-        return ["--settings", str(path)], {"source": str(path), "settings": settings}
+        return ["--settings", str(path)], {"source": str(path), "origin": origin,
+                                           "settings": {"permissions": settings.get("permissions")},
+                                           "ignored_keys": sorted(set(settings) - {"permissions"})}
     try:
         settings = tomllib.loads(path.read_text())
     except tomllib.TOMLDecodeError as error:
@@ -135,7 +159,7 @@ def permission_arguments(host: str, path: Path | None) -> tuple[list[str], dict[
             arguments += ["-c", f"{key}={json.dumps(settings[key])}"]
             applied[key] = settings[key]
     ignored = sorted(set(settings) - set(CODEX_PERMISSION_KEYS))
-    return arguments, {"source": str(path), "settings": applied, "ignored_keys": ignored}
+    return arguments, {"source": str(path), "origin": origin, "settings": applied, "ignored_keys": ignored}
 
 
 def run(command: list[str], cwd: Path, stdin: Path, stdout: Path, stderr: Path) -> tuple[int | None, str | None]:
@@ -207,9 +231,15 @@ def main() -> int:
         worktree = absolute(args.worktree, "worktree")
         spec = absolute(args.spec, "spec")
         output = absolute(args.output_dir, "output-dir")
-        permissions = absolute(args.permissions, "permissions") if args.permissions else None
-        if permissions is None and args.project_defaults:
-            permissions = project_permissions(args.host, absolute(args.project_defaults, "project-defaults"))
+        # Compare with None: an empty value (for example, an unset shell variable) is an error,
+        # not an omitted option. absolute() rejects it.
+        permissions = absolute(args.permissions, "permissions") if args.permissions is not None else None
+        origin = "--permissions"
+        if args.project_defaults is not None:
+            # Check the table also when --permissions has priority, so that an error in it is reported.
+            from_table = project_permissions(args.host, absolute(args.project_defaults, "project-defaults"))
+            if permissions is None and from_table is not None:
+                permissions, origin = from_table, f"permissions.{args.host} of --project-defaults"
         if not worktree.is_dir():
             raise UsageError(f"--worktree is not a directory: {worktree}")
         if not spec.is_file():
@@ -231,7 +261,7 @@ def main() -> int:
         spec_text = spec.read_text()
         if not spec_text.strip():
             raise UsageError(f"--spec is empty: {spec}")
-        permission_args, permission_summary = permission_arguments(args.host, permissions)
+        permission_args, permission_summary = permission_arguments(args.host, permissions, origin)
         # codex exec cannot select a custom role by name, so its handoff holds the role body.
         handoff = (f"# Role instructions\n\n{role.rstrip()}\n\n# Handoff\n\n{spec_text}"
                    if args.host == "codex" else spec_text)

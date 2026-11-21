@@ -29,7 +29,7 @@ For an omitted role or field, use the next source in the precedence order in the
 
 ## Permissions
 
-The optional `[permissions]` table names the permission file that the owner authorizes for a role on each host.
+The optional `[permissions]` table names the permission file that the owner authorizes for each destination host. The entry applies to all roles on that host.
 It accepts the optional fields `codex` and `claude`.
 Each value is the absolute path of a file: a Codex TOML file with `sandbox_mode` and `approval_policy`, or a Claude Code settings JSON file.
 

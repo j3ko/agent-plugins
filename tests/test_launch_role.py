@@ -31,8 +31,18 @@ if mode == "exit3":
     raise SystemExit(3)
 if name == "codex":
     print(json.dumps({{"type": "event"}}))
+    bwrap = "bwrap: No permissions to create a new namespace"
+    def command(output, exit_code):
+        return {{"type": "item.completed", "item": {{"type": "command_execution", "command": "ls",
+                "aggregated_output": output, "exit_code": exit_code, "status": "completed"}}}}
     if mode == "bwrap":
-        print(json.dumps({{"type": "exec", "output": "bwrap: No permissions to create a new namespace"}}))
+        print(json.dumps(command(bwrap + ", likely because the kernel does not allow it\\n", 1)))
+    if mode == "quote":
+        # The role reads and quotes the diagnostic, but its sandbox works.
+        print(json.dumps(command("docs: every command fails with `" + bwrap + "`\\n", 0)))
+        print(json.dumps(command(bwrap + "\\n", 0)))
+        print(json.dumps({{"type": "item.completed", "item": {{"type": "agent_message", "text": bwrap}}}}))
+        print(json.dumps(command("grep: " + bwrap + ": no match\\n", 1)))
     if mode != "empty":
         Path(args[args.index("-o") + 1]).write_text("codex final report\\n")
 elif mode == "malformed":
@@ -140,6 +150,40 @@ class LaunchRoleTests(unittest.TestCase):
         self.launch('claude', 'codex', '--permissions', chosen, '--project-defaults', defaults)
         self.assertEqual(self.recorded()['args'][:3], ['-c', 'sandbox_mode="workspace-write"', 'exec'])
 
+    def test_invalid_project_defaults_stop_the_launch_also_with_permissions_argument(self):
+        chosen = self.base / 'chosen.toml'
+        chosen.write_text('sandbox_mode = "workspace-write"\n')
+        defaults = self.base / '.dev-team.toml'
+        defaults.write_text('[permissions]\ngemini = "/x"\n')
+        self.launch('claude', 'codex', '--permissions', chosen, '--project-defaults', defaults, expect=2)
+        self.assertFalse(self.record.exists())
+
+    def test_empty_permission_options_stop_before_launch(self):
+        for option in ('--permissions', '--project-defaults'):
+            with self.subTest(option=option):
+                result = self.launch('claude', 'codex', option, '', '--dry-run', expect=2)
+                self.assertIn('absolute path', result.stderr)
+
+    def test_missing_file_in_project_defaults_names_its_source(self):
+        defaults = self.base / '.dev-team.toml'
+        defaults.write_text(f'[permissions]\ncodex = "{self.base / "absent.toml"}"\n')
+        result = self.launch('claude', 'codex', '--project-defaults', defaults, expect=2)
+        self.assertIn('permissions.codex of --project-defaults is not a file', result.stderr)
+        self.assertFalse(self.record.exists())
+
+    def test_summary_lists_only_the_permission_fields_of_claude_settings(self):
+        settings = self.base / 'claude-settings.json'
+        settings.write_text(json.dumps({'permissions': {'defaultMode': 'acceptEdits'},
+                                        'env': {'TOKEN': 'fake-secret-value'}}))
+        defaults = self.base / '.dev-team.toml'
+        defaults.write_text(f'[permissions]\nclaude = "{settings}"\n')
+        result = self.launch('codex', 'claude', '--project-defaults', defaults)
+        summary = json.loads(result.stdout)
+        self.assertEqual(summary['permissions']['settings'], {'permissions': {'defaultMode': 'acceptEdits'}})
+        self.assertEqual(summary['permissions']['ignored_keys'], ['env'])
+        for text in (result.stdout, result.stderr, (self.output / 'dispatch.json').read_text()):
+            self.assertNotIn('fake-secret-value', text)
+
     def test_project_defaults_without_an_entry_for_the_host_add_no_overrides(self):
         settings = self.base / 'claude.json'
         settings.write_text('{}')
@@ -166,6 +210,12 @@ class LaunchRoleTests(unittest.TestCase):
         self.assertEqual(summary['status'], 'failed')
         self.assertEqual(summary['exit_status'], 0)
         self.assertTrue(any('sandbox could not start' in reason for reason in summary['reasons']))
+
+    def test_a_role_that_quotes_the_sandbox_diagnostic_does_not_fail_the_dispatch(self):
+        result = self.launch('claude', 'codex', mode='quote')
+        summary = json.loads(result.stdout)
+        self.assertEqual(summary['status'], 'collected')
+        self.assertEqual(summary['reasons'], [])
 
     def test_invalid_permission_file_stops_before_launch(self):
         for name, content in (('type.toml', 'sandbox_mode = true\n'), ('syntax.toml', 'sandbox_mode = \n')):
