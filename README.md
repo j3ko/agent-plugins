@@ -84,10 +84,15 @@ effort = "high"
 host = "codex"
 model = "sol"
 effort = "high"
+
+[permissions]
+codex = "/etc/codex/config.toml"
 ```
 
 An optional `[permissions]` table names the permission file that you authorize for
-each destination host, for example `codex = "/etc/codex/config.toml"`. The launcher
+each destination host. In the example, `/etc/codex/config.toml` is the Codex policy of the
+dev container. Add `claude` only for a Claude Code settings JSON file that permits the
+work of a launched role, because `claude -p` denies tool calls that it does not permit. The launcher
 reads it, so that the orchestrator does not write a permission file of its own. The
 orchestrator reads this table only from its main checkout, never from the worktree of
 a role, so that a branch cannot change the policy of its own roles.
