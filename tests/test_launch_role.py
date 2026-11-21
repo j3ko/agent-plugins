@@ -120,6 +120,40 @@ class LaunchRoleTests(unittest.TestCase):
         self.assertEqual(arguments[0], 'exec')
         self.assertFalse(any('sandbox_mode' in item or 'approval_policy' in item for item in arguments))
 
+    def test_project_defaults_name_the_permission_file_of_the_host(self):
+        codex = self.base / 'codex.toml'
+        codex.write_text('sandbox_mode = "danger-full-access"\napproval_policy = "on-request"\n')
+        defaults = self.base / '.dev-team.toml'
+        defaults.write_text(f'[roles.reviewer]\nhost = "codex"\n\n[permissions]\ncodex = "{codex}"\n')
+        result = self.launch('claude', 'codex', '--project-defaults', defaults)
+        self.assertEqual(self.recorded()['args'][:5], ['-c', 'sandbox_mode="danger-full-access"',
+                                                       '-c', 'approval_policy="on-request"', 'exec'])
+        self.assertEqual(json.loads(result.stdout)['permissions']['source'], str(codex))
+        # --permissions has priority over the table.
+        chosen = self.base / 'chosen.toml'
+        chosen.write_text('sandbox_mode = "workspace-write"\n')
+        shutil.rmtree(self.output)
+        self.launch('claude', 'codex', '--permissions', chosen, '--project-defaults', defaults)
+        self.assertEqual(self.recorded()['args'][:3], ['-c', 'sandbox_mode="workspace-write"', 'exec'])
+
+    def test_project_defaults_without_an_entry_for_the_host_add_no_overrides(self):
+        defaults = self.base / '.dev-team.toml'
+        defaults.write_text('[roles.reviewer]\nhost = "codex"\n')
+        self.launch('claude', 'codex', '--project-defaults', defaults)
+        self.assertEqual(self.recorded()['args'][0], 'exec')
+
+    def test_invalid_project_defaults_stop_before_launch(self):
+        defaults = self.base / '.dev-team.toml'
+        for content in ('permissions = "x"\n', '[permissions]\ngemini = "/x"\n',
+                        '[permissions]\ncodex = "relative.toml"\n', '[permissions]\ncodex = 1\n',
+                        f'[permissions]\ncodex = "{self.base / "absent.toml"}"\n', '[permissions\n'):
+            with self.subTest(content=content):
+                defaults.write_text(content)
+                self.launch('claude', 'codex', '--project-defaults', defaults, expect=2)
+                self.assertFalse(self.record.exists())
+        for value in (self.base / 'absent.toml', ''):
+            self.launch('claude', 'codex', '--project-defaults', value, expect=2)
+
     def test_invalid_permission_file_stops_before_launch(self):
         for name, content in (('type.toml', 'sandbox_mode = true\n'), ('syntax.toml', 'sandbox_mode = \n')):
             with self.subTest(name=name):
