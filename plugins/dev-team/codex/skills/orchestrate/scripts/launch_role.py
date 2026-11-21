@@ -18,6 +18,7 @@ import argparse
 import json
 import os
 from pathlib import Path
+import re
 import signal
 import subprocess
 import sys
@@ -30,6 +31,9 @@ RESEARCHER_DISALLOWED_TOOLS = ("Edit", "Write", "NotebookEdit")
 # The --permission-mode choices of Claude Code 2.1.329, and "default".
 CLAUDE_PERMISSION_MODES = ("default", "acceptEdits", "auto", "bypassPermissions", "manual", "dontAsk", "plan")
 CLAUDE_RULE_LISTS = ("allow", "ask", "deny", "additionalDirectories")
+CLAUDE_PERMISSION_RULE = re.compile(r"[A-Za-z][A-Za-z0-9_.:-]*(\(.*\))?", re.DOTALL)
+# The system configuration of Codex CLI. The variable exists for the tests.
+CODEX_SYSTEM_CONFIG = Path(os.environ.get("DEV_TEAM_CODEX_SYSTEM_CONFIG", "/etc/codex/config.toml"))
 # Codex writes this text when its sandbox cannot create the namespaces that it needs.
 SANDBOX_FAILURE = "bwrap: No permissions to create a new namespace"
 
@@ -225,7 +229,9 @@ def permission_arguments(host: str, path: Path | None, origin: str) -> tuple[lis
     tokens, and the summary goes to stdout, stderr and dispatch.json.
     """
     if path is None:
-        return [], {"source": None, "note": "the configured policy of the destination stays in effect"}
+        if host == "codex":
+            return codex_configured_policy()
+        return [], {"source": None, "note": "the configured user settings of the destination stay in effect"}
     if not path.is_file():
         raise UsageError(f"{origin} is not a file: {path}")
     if host == "claude":
@@ -255,6 +261,41 @@ def permission_arguments(host: str, path: Path | None, origin: str) -> tuple[lis
     return arguments, {"source": str(path), "origin": origin, "settings": applied, "ignored_keys": ignored}
 
 
+def codex_configured_policy() -> tuple[list[str], dict[str, object]]:
+    """Return the permission fields of the system and user Codex configuration as overrides.
+
+    Codex also loads .codex/config.toml of a trusted project, and a linked worktree
+    of a trusted checkout is trusted too. A branch could thus select the sandbox of
+    its own role. An explicit -c override has priority over the project file, so
+    pass the configured values explicitly. The user file has priority over the
+    system file. Codex profiles are not read.
+    """
+    home = Path(os.environ.get("CODEX_HOME") or Path.home() / ".codex")
+    applied: dict[str, str] = {}
+    sources: dict[str, str] = {}
+    for layer in (CODEX_SYSTEM_CONFIG, home / "config.toml"):
+        if not layer.is_file():
+            continue
+        try:
+            data = tomllib.loads(layer.read_text())
+        except tomllib.TOMLDecodeError as error:
+            raise UsageError(f"{layer}: not valid TOML: {error}") from error
+        for key in CODEX_PERMISSION_KEYS:
+            if key in data:
+                if not isinstance(data[key], str):
+                    raise UsageError(f"{layer}: {key} must be a string")
+                applied[key], sources[key] = data[key], str(layer)
+    if "sandbox_mode" not in applied:
+        raise UsageError(f"no sandbox_mode in {CODEX_SYSTEM_CONFIG} or {home / 'config.toml'}: "
+                         "name a permission file with --permissions or --project-defaults")
+    arguments: list[str] = []
+    for key, value in applied.items():
+        arguments += ["-c", f"{key}={json.dumps(value)}"]
+    return arguments, {"source": None, "origin": "configured policy", "settings": applied,
+                       "configured_in": sources,
+                       "note": "pinned, so that a project .codex/config.toml cannot change it"}
+
+
 def check_claude_permissions(path: Path, settings: dict[str, object]) -> None:
     """Stop if the permissions field has an obvious error.
 
@@ -262,20 +303,27 @@ def check_claude_permissions(path: Path, settings: dict[str, object]) -> None:
     validation. The destination then runs with its other settings, although the
     summary names this file. This check covers the permission fields only.
     """
-    permissions = settings.get("permissions")
-    if permissions is None:
+    # An explicit null is not an omitted field: Claude Code rejects it.
+    if "permissions" not in settings:
         return
+    permissions = settings["permissions"]
     if not isinstance(permissions, dict):
         raise UsageError(f"{path}: permissions must be a JSON object")
-    mode = permissions.get("defaultMode")
-    if mode is not None and mode not in CLAUDE_PERMISSION_MODES:
+    if "defaultMode" in permissions and permissions["defaultMode"] not in CLAUDE_PERMISSION_MODES:
         raise UsageError(f"{path}: permissions.defaultMode must be one of "
-                         f"{', '.join(CLAUDE_PERMISSION_MODES)}: {mode!r}")
+                         f"{', '.join(CLAUDE_PERMISSION_MODES)}: {permissions['defaultMode']!r}")
     for key in CLAUDE_RULE_LISTS:
-        value = permissions.get(key)
-        if value is not None and (not isinstance(value, list)
-                                  or not all(isinstance(item, str) for item in value)):
+        if key not in permissions:
+            continue
+        value = permissions[key]
+        if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
             raise UsageError(f"{path}: permissions.{key} must be a list of strings")
+        if key == "additionalDirectories":
+            continue
+        for rule in value:
+            # A rule is a tool name, optionally with one specifier in parentheses: Bash(git *).
+            if not CLAUDE_PERMISSION_RULE.fullmatch(rule) or rule.count("(") != rule.count(")"):
+                raise UsageError(f"{path}: permissions.{key} has a rule that is not valid: {rule!r}")
 
 
 def run(command: list[str], cwd: Path, stdin: Path, stdout: Path, stderr: Path) -> tuple[int | None, str | None]:

@@ -56,7 +56,7 @@ A separate process does not inherit the approvals or sandbox of the caller. Reso
 
 1. **A permission file that the owner names for this task.** Pass it with `--permissions`.
 2. **The `[permissions]` table of `.dev-team.toml`** ([project defaults](project-defaults.md#permissions)). Pass the absolute path of `.dev-team.toml` in the checkout of the main session with `--project-defaults`, never a file in an assigned worktree ([trusted location](project-defaults.md#trusted-location)). The launcher reads the entry of the destination host. It rejects a `--project-defaults` file or a permission file in the worktree.
-3. **The configured policy of the destination.** Pass neither option. The destination CLI then uses its own configuration, for example a system Codex `config.toml` of the container.
+3. **The configured policy of the destination.** Pass neither option. For Codex, the launcher reads `sandbox_mode` and `approval_policy` from the system file `/etc/codex/config.toml` and the user file `$CODEX_HOME/config.toml` (the user file has priority), and passes them explicitly. If neither file sets `sandbox_mode`, the launch stops. For Claude, the user settings of the destination apply.
 4. **The default permissions of the destination:** the [default Codex permissions](#default-codex-permissions) or the [default Claude permissions](#default-claude-permissions). These defaults give full access. Use them only after the owner approves them for this task or session.
 
 If the configured policy fails, for example with the sandbox failure that the launcher reports, stop. Report the failure to the owner, and ask whether to use the defaults. The configured policy can be a limit that an administrator set on purpose. Do not widen the access yourself.
@@ -92,7 +92,9 @@ To inspect the settings and the command without a launch, add `--dry-run`. A dry
 
 ### Permission file
 
-The launcher reads a permission file only from `--permissions`, or from the `[permissions]` entry of the destination host in the `--project-defaults` file. `--permissions` has priority. The launcher checks the `--project-defaults` file also when `--permissions` is given. Without either option, the launcher adds no permission arguments, and the configured policy of the destination stays in effect.
+The launcher reads a permission file only from `--permissions`, or from the `[permissions]` entry of the destination host in the `--project-defaults` file. `--permissions` has priority. The launcher checks the `--project-defaults` file also when `--permissions` is given. Without either option, the launcher uses the configured policy (source 3).
+
+Codex also loads `.codex/config.toml` of a trusted project, and a linked worktree of a trusted checkout is trusted too. Thus a branch could select the sandbox of its own role. With Codex CLI 0.171.0, an explicit `-c sandbox_mode=...` had priority over that file. For this reason, the launcher always passes `sandbox_mode` explicitly to Codex. Other fields of a project `.codex/config.toml`, for example MCP servers, can still load. `codex exec` has no option to skip the project file.
 
 - Codex: a TOML file. The launcher reads only the `sandbox_mode` and `approval_policy` fields and passes them as invocation overrides. The summary lists the other keys as `ignored_keys`. With Codex CLI 0.167.0, a `codex exec` session used the `sandbox_mode` of the file. But it recorded the approval policy `never` when the file gave `on-request`. Thus, do not rely on approval requests in a launched Codex role.
 - Claude: a settings JSON file. The launcher passes its path with `--settings`. The summary shows only the `permissions` field of the file, because a settings file can hold tokens, for example in `env`. It lists the other keys as `omitted_from_summary`. Claude Code still receives the complete file.
@@ -170,7 +172,7 @@ Use the commands below only if the launcher is not available. They are the comma
 Set `codex_permissions` as a Bash array. Use the first source that applies in [Resolve the permissions](#5-resolve-the-permissions):
 
 - Source 1 or 2: read the `sandbox_mode` and `approval_policy` fields of the file, as the paragraph after the command gives.
-- Source 3: an empty array, `codex_permissions=()`. Codex then uses its configured policy.
+- Source 3: the `sandbox_mode` and `approval_policy` fields of `$CODEX_HOME/config.toml`, or else of `/etc/codex/config.toml`, as overrides. Do not use an empty array: a `.codex/config.toml` of the branch could then select the sandbox.
 - Source 4, after the owner approves it: the [default Codex permissions](#default-codex-permissions), `codex_permissions=(-c 'sandbox_mode="danger-full-access"' -c 'approval_policy="never"')`.
 
 Keep the role body in `handoff`, because `codex exec` does not select one of our custom roles by name.
@@ -196,7 +198,7 @@ A `bwrap` namespace failure shows that the policy in effect needs a sandbox that
 Launch Claude in the assigned worktree. The `--append-system-prompt-file` option transfers the extracted shared role instructions. With this option, the destination does not need an installation of the plugin.
 
 1. Use the first source that applies in [Resolve the permissions](#5-resolve-the-permissions). For source 1 or 2, set `claude_settings` to the absolute path of that file. For source 4, after the owner approves it, select an absolute path for `claude_settings` and write the [default Claude permissions](#default-claude-permissions) to that file.
-2. If you selected a settings file, set `claude_permissions=(--settings "$claude_settings")`. For source 3, set `claude_permissions=()`.
+2. If you selected a settings file, set `claude_permissions=(--settings "$claude_settings")`. For source 3, set `claude_permissions=()`. The option `--setting-sources user` keeps the project settings of the branch out.
 3. For a researcher, also set `claude_role_options=(--disallowedTools Edit Write NotebookEdit)`.
 
 The researcher options keep the direct editing-tool exclusions of the Claude adapter. These exclusions do not prevent writes from shell commands.

@@ -85,6 +85,12 @@ class LaunchRoleTests(unittest.TestCase):
         self.spec = base / 'spec.md'
         self.spec.write_text('## Goal\nDo "this" with $(touch injected) and `backticks`; rm -rf x\n')
         self.base = base
+        # The configured Codex policy of the tests. The launcher must not read the machine's files.
+        self.codex_home = base / 'codex-home'
+        self.codex_home.mkdir()
+        (self.codex_home / 'config.toml').write_text('sandbox_mode = "workspace-write"\n')
+        self.codex_system = base / 'codex-system.toml'
+        self.config_env = {'CODEX_HOME': str(self.codex_home), 'DEV_TEAM_CODEX_SYSTEM_CONFIG': str(self.codex_system)}
 
     def launcher(self, package):
         return self.root / f'plugins/dev-team/{package}/skills/orchestrate/scripts/launch_role.py'
@@ -96,7 +102,7 @@ class LaunchRoleTests(unittest.TestCase):
         for key, value in arguments.items():
             command += [key, str(value)]
         environment = {**os.environ, 'PATH': f"{self.bin}{os.pathsep}{os.environ['PATH']}",
-                       'FAKE_RECORD': str(self.record), 'FAKE_MODE': mode}
+                       'FAKE_RECORD': str(self.record), 'FAKE_MODE': mode, **self.config_env}
         result = subprocess.run(command + [str(item) for item in extra], capture_output=True, text=True,
                                 env=environment, cwd=self.base)
         self.assertEqual(result.returncode, expect, result.stdout + result.stderr)
@@ -133,11 +139,21 @@ class LaunchRoleTests(unittest.TestCase):
         # The resolved settings are visible before the launch.
         self.assertIn('danger-full-access', result.stderr)
 
-    def test_codex_launch_without_permission_file_adds_no_permission_overrides(self):
-        self.launch('claude', 'codex')
-        arguments = self.recorded()['args']
-        self.assertEqual(arguments[0], 'exec')
-        self.assertFalse(any('sandbox_mode' in item or 'approval_policy' in item for item in arguments))
+    def test_codex_launch_without_permission_file_pins_the_configured_policy(self):
+        # A project .codex/config.toml cannot change a value that -c gives.
+        self.codex_system.write_text('sandbox_mode = "read-only"\napproval_policy = "on-request"\n')
+        result = self.launch('claude', 'codex')
+        self.assertEqual(self.recorded()['args'][:5], ['-c', 'sandbox_mode="workspace-write"',
+                                                       '-c', 'approval_policy="on-request"', 'exec'])
+        summary = json.loads(result.stdout)['permissions']
+        self.assertEqual(summary['configured_in'], {'sandbox_mode': str(self.codex_home / 'config.toml'),
+                                                    'approval_policy': str(self.codex_system)})
+
+    def test_codex_launch_without_a_configured_sandbox_stops_before_launch(self):
+        (self.codex_home / 'config.toml').write_text('model = "x"\n')
+        result = self.launch('claude', 'codex', expect=2)
+        self.assertIn('no sandbox_mode', result.stderr)
+        self.assertFalse(self.record.exists())
 
     def test_project_defaults_name_the_permission_file_of_the_host(self):
         codex = self.base / 'codex.toml'
@@ -257,7 +273,10 @@ class LaunchRoleTests(unittest.TestCase):
     def test_invalid_claude_permission_fields_stop_before_launch(self):
         settings = self.base / 'claude-settings.json'
         for content in ({'permissions': {'defaultMode': 'bypassPermission'}}, {'permissions': []},
-                        {'permissions': {'allow': 'Bash'}}, {'permissions': {'deny': [1]}}):
+                        {'permissions': {'allow': 'Bash'}}, {'permissions': {'deny': [1]}},
+                        {'permissions': None}, {'permissions': {'ask': None}},
+                        {'permissions': {'defaultMode': None}}, {'permissions': {'deny': ['Bash(']}},
+                        {'permissions': {'allow': ['Bash git']}}, {'permissions': {'allow': ['']}}):
             with self.subTest(content=content):
                 settings.write_text(json.dumps(content))
                 self.launch('codex', 'claude', '--permissions', settings, '--dry-run', expect=2)
@@ -315,7 +334,7 @@ class LaunchRoleTests(unittest.TestCase):
         defaults = self.base / '.dev-team.toml'
         defaults.write_text(f'[permissions]\nclaude = "{settings}"\n')
         self.launch('claude', 'codex', '--project-defaults', defaults)
-        self.assertEqual(self.recorded()['args'][0], 'exec')
+        self.assertEqual(self.recorded()['args'][:3], ['-c', 'sandbox_mode="workspace-write"', 'exec'])
 
     def test_invalid_project_defaults_stop_before_launch(self):
         defaults = self.base / '.dev-team.toml'
@@ -379,7 +398,7 @@ class LaunchRoleTests(unittest.TestCase):
         result = self.launch('claude', 'codex', '--dry-run')
         summary = json.loads(result.stdout)
         self.assertEqual(summary['status'], 'dry-run')
-        self.assertEqual(summary['command'][:2], ['codex', 'exec'])
+        self.assertEqual(summary['command'][:4], ['codex', '-c', 'sandbox_mode="workspace-write"', 'exec'])
         self.assertFalse(self.record.exists())
         self.assertFalse(self.output.exists())
         # The same output directory stays usable for the real launch.
@@ -407,7 +426,7 @@ class LaunchRoleTests(unittest.TestCase):
 
     def test_missing_cli_is_a_failed_dispatch(self):
         (self.bin / 'codex').unlink()
-        environment = {'PATH': str(self.bin), 'FAKE_RECORD': str(self.record)}
+        environment = {'PATH': str(self.bin), 'FAKE_RECORD': str(self.record), **self.config_env}
         result = subprocess.run(
             [sys.executable, str(self.launcher('claude')), '--role', 'reviewer', '--host', 'codex',
              '--model', 'm', '--effort', 'high', '--worktree', str(self.worktree), '--spec', str(self.spec),
@@ -467,7 +486,7 @@ class LaunchRoleTests(unittest.TestCase):
 
     def test_termination_signal_reaches_the_destination_cli(self):
         environment = {**os.environ, 'PATH': f"{self.bin}{os.pathsep}{os.environ['PATH']}",
-                       'FAKE_RECORD': str(self.record), 'FAKE_MODE': 'sleep'}
+                       'FAKE_RECORD': str(self.record), 'FAKE_MODE': 'sleep', **self.config_env}
         process = subprocess.Popen(
             [sys.executable, str(self.launcher('claude')), '--role', 'reviewer', '--host', 'codex',
              '--model', 'm', '--effort', 'high', '--worktree', str(self.worktree), '--spec', str(self.spec),
@@ -493,7 +512,7 @@ class LaunchRoleTests(unittest.TestCase):
                        check=True, capture_output=True)
         launcher = project / '.agents/skills/orchestrate/scripts/launch_role.py'
         environment = {**os.environ, 'PATH': f"{self.bin}{os.pathsep}{os.environ['PATH']}",
-                       'FAKE_RECORD': str(self.record)}
+                       'FAKE_RECORD': str(self.record), **self.config_env}
         result = subprocess.run(
             [sys.executable, str(launcher), '--role', 'researcher', '--host', 'codex', '--model', 'm',
              '--effort', 'high', '--worktree', str(self.worktree), '--spec', str(self.spec),
