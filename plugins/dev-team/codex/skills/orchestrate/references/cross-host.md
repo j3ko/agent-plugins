@@ -95,7 +95,7 @@ To inspect the settings and the command without a launch, add `--dry-run`. A dry
 The launcher reads a permission file only from `--permissions`, or from the `[permissions]` entry of the destination host in the `--project-defaults` file. `--permissions` has priority. The launcher checks the `--project-defaults` file also when `--permissions` is given. Without either option, the launcher adds no permission arguments, and the configured policy of the destination stays in effect.
 
 - Codex: a TOML file. The launcher reads only the `sandbox_mode` and `approval_policy` fields and passes them as invocation overrides. The summary lists the other keys as `ignored_keys`. With Codex CLI 0.167.0, a `codex exec` session used the `sandbox_mode` of the file. But it recorded the approval policy `never` when the file gave `on-request`. Thus, do not rely on approval requests in a launched Codex role.
-- Claude: a settings JSON file. The launcher passes its path with `--settings`. The summary shows only the `permissions` field of the file and lists the other keys as `ignored_keys`, because a settings file can hold tokens, for example in `env`.
+- Claude: a settings JSON file. The launcher passes its path with `--settings`. The summary shows only the `permissions` field of the file, because a settings file can hold tokens, for example in `env`. It lists the other keys as `omitted_from_summary`. Claude Code still receives the complete file.
 
 Use the defaults below only for source 4 of [Resolve the permissions](#5-resolve-the-permissions), after the owner approves them:
 
@@ -157,7 +157,7 @@ The launcher gives exit status 1 for these conditions:
 - The report is missing or empty.
 - The Claude output is malformed or is not a success.
 - The Claude output lists permission denials.
-- The Codex sandbox could not start: no Codex command succeeded, and a failed command gave output that starts with `bwrap: No permissions to create a new namespace`. Or the Codex errors contain this text. Codex can exit with 0 in this case. The launcher ignores this text in role messages and in sessions where a command succeeded.
+- The Codex sandbox could not start: no Codex command succeeded, and a failed command gave output that starts with `bwrap: No permissions to create a new namespace`, or the Codex errors contain this text. Codex can exit with 0 in this case. The launcher ignores this text in role messages and in sessions where a command succeeded. This check is a heuristic, because Codex gives no structured signal for this failure.
 
 Exit status 0 does not show that the work is complete. The launcher does not detect other Codex permission denials or blockers that the role reports. Read the report and do the checks in "Verify the result".
 

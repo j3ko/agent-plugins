@@ -40,9 +40,9 @@ codex = "/etc/codex/config.toml"
 
 ### Trusted location
 
-A branch can change `.dev-team.toml` and the files in its tree. A PR could thus give its own roles a wider policy. For this reason, read `[permissions]` only from the checkout of the main session, not from an assigned worktree. Make sure that the main checkout is on the default branch, and that its `[permissions]` table agrees with the default branch, for example with `git diff <default-branch> -- .dev-team.toml`. If it does not agree, stop and ask the owner. Each permission file that the table names must be outside the repository.
+A branch can change `.dev-team.toml` and the files in its tree. A PR could thus give its own roles a wider policy. For this reason, read `[permissions]` only from the checkout of the main session, not from an assigned worktree. Make sure that the main checkout is on the default branch, and that the default branch has the same `[permissions]` table. Compare the file with `git show <default-branch>:.dev-team.toml`. Do not use `git diff` for this check: it gives no output for an untracked file. If the default branch has no copy of the file, or the tables are different, stop and ask the owner. Each permission file that the table names must be outside the repository.
 
-The launcher rejects a `--project-defaults` file or a permission file in the `--worktree` directory. It cannot detect a changed table in the main checkout.
+The launcher rejects a `--project-defaults` file or a permission file in the `--worktree` directory, also through a symbolic link in the worktree. It also rejects a table entry that is not a file. It cannot detect a changed table in the main checkout.
 
 Give the path of `.dev-team.toml` in the main checkout to the launcher with `--project-defaults`.
 The launcher reads the entry of the destination host.

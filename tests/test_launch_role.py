@@ -46,6 +46,10 @@ if name == "codex":
         # A diff that exits with 1 and prints the diagnostic first, after a command that succeeded.
         print(json.dumps(command(bwrap + "\\n---\\nother\\n", 1)))
         print("null")
+    if mode == "stderr-ok":
+        # The diagnostic in the errors does not count when a command succeeded.
+        print(bwrap, file=sys.stderr)
+        print(json.dumps(command("ok\\n", 0)))
     if mode != "empty":
         Path(args[args.index("-o") + 1]).write_text("codex final report\\n")
 elif mode == "malformed":
@@ -149,7 +153,9 @@ class LaunchRoleTests(unittest.TestCase):
         chosen = self.base / 'chosen.toml'
         chosen.write_text('sandbox_mode = "workspace-write"\n')
         defaults = self.base / '.dev-team.toml'
-        defaults.write_text(f'[permissions]\ncodex = "{self.base / "absent.toml"}"\n')
+        table = self.base / 'table.toml'
+        table.write_text('sandbox_mode = "danger-full-access"\n')
+        defaults.write_text(f'[permissions]\ncodex = "{table}"\n')
         self.launch('claude', 'codex', '--permissions', chosen, '--project-defaults', defaults)
         self.assertEqual(self.recorded()['args'][:3], ['-c', 'sandbox_mode="workspace-write"', 'exec'])
 
@@ -172,12 +178,35 @@ class LaunchRoleTests(unittest.TestCase):
         main_defaults.write_text(f'[permissions]\ncodex = "{inside}"\n')
         link = self.base / 'link.toml'
         link.symlink_to(inside)
+        # Links in the worktree to files outside it are sources in the worktree too.
+        local_link = self.worktree / 'outside-link.toml'
+        local_link.symlink_to(outside)
+        main_link_defaults = self.worktree / 'defaults-link.toml'
+        main_defaults_outside = self.base / 'defaults-outside.toml'
+        main_defaults_outside.write_text(f'[permissions]\ncodex = "{outside}"\n')
+        main_link_defaults.symlink_to(main_defaults_outside)
+        table_link = self.base / 'table-link.toml'
+        table_link.write_text(f'[permissions]\ncodex = "{local_link}"\n')
+        hop = self.base / 'hop.toml'
+        hop.symlink_to(local_link)
         for extra in (('--project-defaults', local_defaults), ('--project-defaults', main_defaults),
-                      ('--permissions', inside), ('--permissions', link)):
+                      ('--permissions', inside), ('--permissions', link), ('--permissions', local_link),
+                      ('--permissions', hop), ('--project-defaults', main_link_defaults),
+                      ('--project-defaults', table_link)):
             with self.subTest(extra=extra):
                 result = self.launch('claude', 'codex', *extra, expect=2)
                 self.assertIn('must be outside the worktree', result.stderr)
                 self.assertFalse(self.record.exists())
+
+    def test_missing_file_for_the_other_host_stops_before_launch(self):
+        defaults = self.base / '.dev-team.toml'
+        defaults.write_text(f'[permissions]\nclaude = "{self.base / "absent.json"}"\n')
+        result = self.launch('claude', 'codex', '--project-defaults', defaults, '--dry-run', expect=2)
+        self.assertIn('permissions.claude of --project-defaults is not a file', result.stderr)
+
+    def test_sandbox_diagnostic_in_errors_does_not_count_after_a_successful_command(self):
+        summary = json.loads(self.launch('claude', 'codex', mode='stderr-ok').stdout)
+        self.assertEqual(summary['reasons'], [])
 
     def test_empty_permission_options_stop_before_launch(self):
         for option in ('--permissions', '--project-defaults'):
@@ -201,7 +230,7 @@ class LaunchRoleTests(unittest.TestCase):
         result = self.launch('codex', 'claude', '--project-defaults', defaults)
         summary = json.loads(result.stdout)
         self.assertEqual(summary['permissions']['settings'], {'permissions': {'defaultMode': 'acceptEdits'}})
-        self.assertEqual(summary['permissions']['ignored_keys'], ['env'])
+        self.assertEqual(summary['permissions']['omitted_from_summary'], ['env'])
         for text in (result.stdout, result.stderr, (self.output / 'dispatch.json').read_text()):
             self.assertNotIn('fake-secret-value', text)
 

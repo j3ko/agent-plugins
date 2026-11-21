@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 import signal
 import subprocess
@@ -77,8 +78,44 @@ def runtime_value(value: str, name: str) -> str:
     return value
 
 
-def project_permissions(host: str, defaults: Path) -> Path | None:
-    """Return the permission file that the project defaults name for the host."""
+def path_hops(raw: str) -> list[Path]:
+    """Return the given path, each path that its symbolic links lead to, and the resolved path."""
+    hops: list[Path] = []
+    pending = [Path(os.path.normpath(raw))]
+    while pending and len(hops) < 40:
+        path = pending.pop()
+        if path in hops:
+            continue
+        hops.append(path)
+        for index in range(1, len(path.parts) + 1):
+            prefix = Path(*path.parts[:index])
+            if prefix.is_symlink():
+                target = Path(os.path.normpath(prefix.parent / os.readlink(prefix)))
+                pending.append(target.joinpath(*path.parts[index:]))
+                break
+    hops.append(Path(raw).resolve())
+    return hops
+
+
+def outside_worktree(raw: str, name: str, worktrees: tuple[Path, ...]) -> None:
+    """Stop if the path, or a symbolic link on its way, is in the worktree.
+
+    The role can change the files of its worktree, and a PR branch can change them
+    before the launch. A permission source in the worktree could thus select its own
+    policy. A link in the worktree to a file outside is a source in the worktree too.
+    """
+    for path in path_hops(raw):
+        for tree in worktrees:
+            if path == tree or tree in path.parents:
+                raise UsageError(f"{name} must be outside the worktree: {raw}")
+
+
+def project_permissions(host: str, defaults: Path, worktrees: tuple[Path, ...]) -> Path | None:
+    """Return the permission file that the project defaults name for the host.
+
+    Check each entry, not only the entry of the destination host, so that an
+    error in the table is reported before it affects a launch.
+    """
     if not defaults.is_file():
         raise UsageError(f"--project-defaults is not a file: {defaults}")
     try:
@@ -91,12 +128,15 @@ def project_permissions(host: str, defaults: Path) -> Path | None:
     unknown = sorted(set(table) - {"claude", "codex"})
     if unknown:
         raise UsageError(f"{defaults}: [permissions] has unknown keys: {', '.join(unknown)}")
-    # Check each entry, not only the entry of the destination host.
     paths: dict[str, Path] = {}
     for key, value in table.items():
+        name = f"permissions.{key} of --project-defaults"
         if not isinstance(value, str) or not value:
             raise UsageError(f"{defaults}: permissions.{key} must be a nonempty string")
         paths[key] = absolute(value, f"project-defaults permissions.{key}")
+        outside_worktree(value, name, worktrees)
+        if not paths[key].is_file():
+            raise UsageError(f"{name} is not a file: {paths[key]}")
     return paths.get(host)
 
 
@@ -107,15 +147,15 @@ def sandbox_failed(events: Path, errors: Path) -> bool:
     A role that only reads or quotes the diagnostic must not fail the dispatch.
     A sandbox that cannot start makes every command fail. Thus, match a failed
     command whose output starts with the diagnostic, only if no command
-    succeeded. Also match the diagnostic in the errors of the Codex CLI.
+    succeeded. Also match the diagnostic in the errors of the Codex CLI, only if no
+    command succeeded. This is a heuristic: Codex gives no structured signal for it.
+    A session whose only command prints the diagnostic and fails also matches.
     """
     try:
-        if SANDBOX_FAILURE in errors.read_text(errors="replace"):
-            return True
+        blocked = SANDBOX_FAILURE in errors.read_text(errors="replace")
         lines = events.read_text(errors="replace").splitlines()
     except OSError:
         return False
-    blocked = False
     for line in lines:
         try:
             event = json.loads(line)
@@ -155,7 +195,7 @@ def permission_arguments(host: str, path: Path | None, origin: str) -> tuple[lis
             raise UsageError(f"{path}: Claude settings must be a JSON object")
         return ["--settings", str(path)], {"source": str(path), "origin": origin,
                                            "settings": {"permissions": settings.get("permissions")},
-                                           "ignored_keys": sorted(set(settings) - {"permissions"})}
+                                           "omitted_from_summary": sorted(set(settings) - {"permissions"})}
     try:
         settings = tomllib.loads(path.read_text())
     except tomllib.TOMLDecodeError as error:
@@ -244,21 +284,20 @@ def main() -> int:
         # Compare with None: an empty value (for example, an unset shell variable) is an error,
         # not an omitted option. absolute() rejects it.
         permissions = absolute(args.permissions, "permissions") if args.permissions is not None else None
-        origin = "--permissions"
-        if args.project_defaults is not None:
-            # Check the table also when --permissions has priority, so that an error in it is reported.
-            from_table = project_permissions(args.host, absolute(args.project_defaults, "project-defaults"))
-            if permissions is None and from_table is not None:
-                permissions, origin = from_table, f"permissions.{args.host} of --project-defaults"
         if not worktree.is_dir():
             raise UsageError(f"--worktree is not a directory: {worktree}")
-        # The role can change the files of its worktree, and a PR branch can change them before
-        # the launch. A permission source in the worktree could thus select its own policy.
-        sources = {"--project-defaults": absolute(args.project_defaults, "project-defaults")
-                   if args.project_defaults is not None else None, origin: permissions}
-        for name, path in sources.items():
-            if path is not None and (path == worktree or worktree in path.parents):
-                raise UsageError(f"{name} must be outside the worktree: {path}")
+        # Check the permission sources before the launcher reads them.
+        worktrees = (Path(os.path.normpath(args.worktree)), worktree)
+        if permissions is not None:
+            outside_worktree(args.permissions, "--permissions", worktrees)
+        origin = "--permissions"
+        if args.project_defaults is not None:
+            defaults = absolute(args.project_defaults, "project-defaults")
+            outside_worktree(args.project_defaults, "--project-defaults", worktrees)
+            # Check the table also when --permissions has priority, so that an error in it is reported.
+            from_table = project_permissions(args.host, defaults, worktrees)
+            if permissions is None and from_table is not None:
+                permissions, origin = from_table, f"permissions.{args.host} of --project-defaults"
         if not spec.is_file():
             raise UsageError(f"--spec is not a file: {spec}")
         if output == worktree or worktree in output.parents:
