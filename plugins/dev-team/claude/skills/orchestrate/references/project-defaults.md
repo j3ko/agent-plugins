@@ -10,7 +10,10 @@ Get the common Git directory with this command:
 git rev-parse --path-format=absolute --git-common-dir
 ```
 
-Remove the last `.git` part of the path to get the main checkout.
+If the last part of the path is exactly `.git`, the main checkout is the parent directory of that path.
+In all other cases, do not guess a path.
+Examples are a bare repository, a submodule and a separate Git directory.
+In these cases, tell the owner and use the root that the project instructions identify.
 Use this directory also when the main session works in a worktree.
 Do not read the file in the worktree of a role, because a branch can change it.
 For other projects, use the root that the project instructions identify.
