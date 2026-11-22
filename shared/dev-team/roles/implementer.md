@@ -94,6 +94,8 @@ The main session checks CI.
 - If the project specifies generated files, regenerate those files.
 - If a proposal is outside the spec, include it in the report. Do not include it in the change.
 - Run Git from the root of your own worktree. Do not redirect Git into the main checkout.
+- Start each command that edits, commits or pushes with `cd <worktree> &&`. The shell does not always keep a `cd` from an earlier command. Without the `cd`, an edit or a commit can go to the main checkout.
+- Make sure that the commit exists before you push. A hook or a signing failure can stop `git commit`. Then a push sends the old HEAD. Run the commit as a separate command, or check `git log -1` before the push.
 - Put temporary files in a private directory that your run creates. Delete only the files that your run made.
 - Keep tool output and the final report small. Read relevant file sections instead of whole repositories.
 
