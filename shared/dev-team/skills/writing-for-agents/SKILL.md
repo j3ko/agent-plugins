@@ -86,7 +86,7 @@ You win twice: fewer tokens, and a sharper hook for the agent to hang its thinki
 
 ## Preserve meaning
 
-Pruning removes meaning. A wording edit must keep it. A wording edit keeps the same actors, actions, conditions, exceptions, permissions, limits and completion criteria. Compare the revised passage with its source.
+A wording edit keeps the same actors, actions, conditions, exceptions, permissions, limits and completion criteria. Compare the revised passage with its source.
 
 - Keep mandatory instructions mandatory. Keep optional actions optional.
 - Keep a prohibition if it defines an access or safety boundary.
