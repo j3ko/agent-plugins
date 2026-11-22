@@ -67,7 +67,9 @@ These choices apply to new agents. They do not change the installed configuratio
 
 ### Project defaults
 
-Commit `.dev-team.toml` at the project root to share role defaults:
+Put `.dev-team.toml` at the root of the main checkout to set role defaults. Track the file
+in Git to share the defaults, or make Git ignore it to keep them local. The orchestrator
+reads the file in the main checkout, also when it works in a worktree:
 
 ```toml
 [roles.implementer]
