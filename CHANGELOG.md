@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.11.0](https://github.com/j3ko/agent-plugins/compare/v0.10.1...v0.11.0) (2026-11-22)
+
+
+### Features
+
+* **writing-for-agents:** add rules that preserve the meaning of a wording edit ([#51](https://github.com/j3ko/agent-plugins/issues/51)) ([4a79453](https://github.com/j3ko/agent-plugins/commit/4a79453db17a94a3bbe32dcae9fa1006422d3568))
+
+
+### Bug Fixes
+
+* **orchestrate:** read .dev-team.toml in the main checkout ([#49](https://github.com/j3ko/agent-plugins/issues/49)) ([a6a70e3](https://github.com/j3ko/agent-plugins/commit/a6a70e323bd47a24d944c816fe2a9007a4ed8d72))
+* **roles:** add two Git lessons to the implementer ([#50](https://github.com/j3ko/agent-plugins/issues/50)) ([9c04d58](https://github.com/j3ko/agent-plugins/commit/9c04d582025ac261449d9485763ccde7fa452c02))
+
 ## [0.10.1](https://github.com/j3ko/agent-plugins/compare/v0.10.0...v0.10.1) (2026-11-22)
 
 
