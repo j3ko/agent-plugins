@@ -84,6 +84,8 @@ The launcher does these steps:
 6. It writes `role_prompt.md`, `handoff.md`, the events, `errors.log`, `report.md` and `dispatch.json` to the output directory.
 7. It prints a JSON summary with a `status` and a list of `reasons`.
 
+The launcher collects the final message of the role into `report.md`. Thus, set `Report destination` to `final message` in the spec. Do not give the role the path of `report.md`. The launcher refuses a spec that names this path, because a role that writes the file makes Codex fail after complete work.
+
 To inspect the settings and the command without a launch, add `--dry-run`. A dry run writes no files.
 
 ### Permission file

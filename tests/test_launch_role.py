@@ -239,6 +239,21 @@ class LaunchRoleTests(unittest.TestCase):
         self.assertFalse(self.record.exists())
         self.assertFalse(inside.exists())
 
+    def test_spec_that_names_the_report_file_stops_before_launch(self):
+        # A Codex role that wrote the -o file made codex exec exit 1 after complete work (issue #41).
+        link = self.base / 'dispatch-link'
+        link.symlink_to(self.output, target_is_directory=True)
+        for output, named in ((self.output, self.output), (link, link), (link, self.output)):
+            with self.subTest(output=output, named=named):
+                self.spec.write_text(f'## Dispatch\n- Report destination: {named / "report.md"}\n')
+                for host in ('codex', 'claude'):
+                    result = self.launch('claude', host, '--output-dir', output, expect=2)
+                    self.assertIn('report file of the launcher', result.stderr)
+        self.assertFalse(self.record.exists())
+        self.assertFalse(self.output.exists())
+        self.spec.write_text('## Dispatch\n- Report destination: final message\n')
+        self.launch('claude', 'codex')
+
     def test_earlier_dispatch_files_are_not_replaced(self):
         self.launch('claude', 'codex')
         report = (self.output / 'report.md').read_text()
