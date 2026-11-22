@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.1](https://github.com/j3ko/agent-plugins/compare/v0.10.0...v0.10.1) (2026-11-22)
+
+
+### Bug Fixes
+
+* **orchestrate:** refuse specs that name the report file; document native worktrees ([#42](https://github.com/j3ko/agent-plugins/issues/42)) ([6b8fb88](https://github.com/j3ko/agent-plugins/commit/6b8fb88f424f179829c777323a80d46caa331810))
+
 ## [0.10.0](https://github.com/j3ko/agent-plugins/compare/v0.9.0...v0.10.0) (2026-11-21)
 
 
