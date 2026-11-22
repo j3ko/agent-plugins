@@ -50,7 +50,8 @@ Different worktrees can use the same Git hooks.
 ### 5. Prove a defect
 
 1. If you write a proof test, write it only in your isolated worktree.
-2. Never change the PR branch.
+2. Start each command that edits files or runs a proof test with `cd <worktree> &&`. The shell does not always keep a `cd` from an earlier command.
+3. Never change the PR branch.
 
 ## Findings
 
