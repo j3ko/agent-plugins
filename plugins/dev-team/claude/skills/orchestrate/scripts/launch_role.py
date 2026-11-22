@@ -214,6 +214,11 @@ def main() -> int:
         spec_text = spec.read_text()
         if not spec_text.strip():
             raise UsageError(f"--spec is empty: {spec}")
+        # The launcher owns the report file. A role that writes it makes Codex fail or Claude lose the report.
+        report_names = {str(files["report"]), str(Path(args.output_dir) / "report.md")}
+        if any(name in spec_text for name in report_names):
+            raise UsageError(f"--spec names the report file of the launcher: {files['report']}. "
+                             "Set 'Report destination' to 'final message'")
         permission_args, permission_summary = permission_arguments(args.host, permissions)
         # codex exec cannot select a custom role by name, so its handoff holds the role body.
         handoff = (f"# Role instructions\n\n{role.rstrip()}\n\n# Handoff\n\n{spec_text}"

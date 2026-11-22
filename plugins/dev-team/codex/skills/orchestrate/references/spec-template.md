@@ -10,8 +10,8 @@ Under "Decisions already made", write a statement about the behavior of a source
 - Host: <claude | codex>
 - Model: <resolved host model ID or alias>
 - Effort: <resolved supported level>
-- Working directory: <absolute assigned worktree path>
-- Report destination: <absolute path outside the reviewed source tree>
+- Working directory: <absolute assigned worktree path | native Claude role: the Agent tool assigns it>
+- Report destination: <final message | absolute path outside the reviewed source tree and outside the dispatch directory>
 - Permissions: <authorized project policy/config source and resolved launch settings>
 
 ## Goal
