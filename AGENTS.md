@@ -15,6 +15,11 @@ identifiers, quoted text and required technical terms. These are the only except
 - Text that a tool generates, such as `CHANGELOG.md`.
 - Legal text, such as a `LICENSE` file.
 
+The `writing-for-agents` and `retro` skills started as copies of upstream text. This
+repository does not track that upstream. Thus, the copy exception does not apply to
+these skills. When you edit one of these skills, rewrite each paragraph that you change
+with the ASD-STE100 rules. Keep the `LICENSE` file of each skill.
+
 Use Python 3.11 or later and the standard library. To validate, run these commands:
 
 ```sh
