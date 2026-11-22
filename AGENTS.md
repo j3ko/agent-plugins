@@ -4,10 +4,21 @@ The shared dev-team prompts are in `shared/dev-team/`. The host metadata is in `
 The command `python3 scripts/build.py` generates `plugins/`, `.agents/plugins/marketplace.json`
 and `.claude-plugin/marketplace.json`. Edit the sources of these files. Then generate them again.
 
-Use ASD-STE100 Simplified Technical English writing rules where appropriate for
-prose. The ASD-STE100 controlled dictionary is optional. Use short sentences,
-active voice and consistent terms. Preserve exact code, commands, identifiers,
-quoted text and required technical terms.
+Write all technical prose with the ASD-STE100 Simplified Technical English writing
+rules. Technical prose includes README files, `AGENTS.md`, skills, role prompts,
+references, code comments, docstrings, error messages, commit messages, PR
+descriptions and issues. The ASD-STE100 controlled dictionary is optional. Use
+short sentences, active voice and consistent terms. Preserve exact code, commands,
+identifiers, quoted text and required technical terms. These are the only exceptions:
+
+- Text that you quote or copy from a different source.
+- Text that a tool generates, such as `CHANGELOG.md`.
+- Legal text, such as a `LICENSE` file.
+
+The `writing-for-agents` and `retro` skills started as copies of upstream text. This
+repository does not track that upstream. Thus, the copy exception does not apply to
+these skills. When you edit one of these skills, rewrite each paragraph that you change
+with the ASD-STE100 rules. Keep the `LICENSE` file of each skill.
 
 Use Python 3.11 or later and the standard library. To validate, run these commands:
 

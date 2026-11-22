@@ -9,7 +9,7 @@ When the document you're writing is a skill, read [`SKILL-MECHANICS.md`](SKILL-M
 
 ## Language
 
-Use the writing rules of [ASD-STE100 Simplified Technical English](https://www.asd-ste100.org/) where appropriate for prose in agent instructions and documentation. The ASD-STE100 controlled dictionary is optional. Use short sentences, active voice and consistent terms. Preserve exact code, commands, identifiers, quoted text and required technical terms.
+Write all prose in agent instructions and documentation with the writing rules of [ASD-STE100 Simplified Technical English](https://www.asd-ste100.org/). The only exceptions are text that you quote or copy from a different source, text that a tool generates and legal text. The ASD-STE100 controlled dictionary is optional. Use short sentences, active voice and consistent terms. Preserve exact code, commands, identifiers, quoted text and required technical terms.
 
 ## Context pointers
 
