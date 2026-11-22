@@ -69,10 +69,10 @@ Use the launcher `scripts/launch_role.py` in the directory of the orchestrate sk
 python3 "$skill_dir/scripts/launch_role.py" \
   --role "$role" --host "$host" --model "$model" --effort "$effort" \
   --worktree "$worktree" --spec "$spec" --output-dir "$dispatch" \
-  --project-defaults "$project_root/.dev-team.toml"
+  --project-defaults "$main_checkout/.dev-team.toml"
 ```
 
-Use `--project-defaults` if `.dev-team.toml` exists. Add `--permissions "$permission_config"` for a file that the owner names for this task, or for the defaults below. `--permissions` has priority. All paths must be absolute. Use a new `--output-dir` outside the worktree for each dispatch. The launcher does not replace the files of an earlier dispatch.
+Use `--project-defaults` if `.dev-team.toml` exists in the main checkout ([project defaults](project-defaults.md)). Add `--permissions "$permission_config"` for a file that the owner names for this task, or for the defaults below. `--permissions` has priority. All paths must be absolute. Use a new `--output-dir` outside the worktree for each dispatch. The launcher does not replace the files of an earlier dispatch.
 
 The launcher does these steps:
 

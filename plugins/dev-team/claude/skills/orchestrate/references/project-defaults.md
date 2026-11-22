@@ -1,13 +1,29 @@
 # Project role defaults
 
-Before you select runtime settings, read `.dev-team.toml` at the project root.
-For Git projects, use the top-level directory of the current working tree.
-This includes an assigned worktree.
-For other projects, use the root that the project instructions identify.
-Read only the file at that root.
-If the file is absent, use the other sources in the precedence order.
+Before you select runtime settings, read `.dev-team.toml` in the main checkout.
+Use this file for all tables: the roles and the permissions.
 
-The owner can commit this file to share defaults between Codex and Claude Code.
+For Git projects, the main checkout is the directory that contains the common Git directory.
+Get the common Git directory with this command:
+
+```sh
+git rev-parse --path-format=absolute --git-common-dir
+```
+
+Remove the last `.git` part of the path to get the main checkout.
+Use this directory also when the main session works in a worktree.
+Do not read the file in the worktree of a role, because a branch can change it.
+For other projects, use the root that the project instructions identify.
+
+Read only the file in the main checkout.
+If the file is absent, use the other sources in the precedence order.
+If the file is absent from the main checkout but the current worktree contains it, tell the owner about the difference.
+Do not use the file in the worktree.
+
+The owner can track the file in Git to share defaults between Codex and Claude Code.
+The owner can also make Git ignore the file, for example to keep model choices local.
+Both are valid.
+
 Treat the file as selection data.
 It does not authorize changes to permissions or authentication.
 It does not authorize commands or external actions.
@@ -38,11 +54,10 @@ Each value is the absolute path of a Codex TOML file with `sandbox_mode` and `ap
 codex = "/etc/codex/config.toml"
 ```
 
-Pass the path of `.dev-team.toml` to the launcher with `--project-defaults`.
+Pass the path of `.dev-team.toml` in the main checkout to the launcher with `--project-defaults`.
 The launcher reads the entry of the destination host.
 The owner adds this table.
 Do not add or change an entry yourself.
-Read the file in the checkout of the main session, not in the worktree of a role, because a branch can change it.
 
 ## Check the file
 
