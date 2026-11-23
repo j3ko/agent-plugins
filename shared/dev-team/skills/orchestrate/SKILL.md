@@ -1,6 +1,6 @@
 ---
 name: orchestrate
-description: Coordinate scoped software implementation, verified research and independent PR review using dev-team agents. Use when delegating project work or running its implementation and review loop.
+description: Run each repository task that ends in a PR, through a spec, an implementer and an independent reviewer. Applies to code, scripts, CI, design documents (decision records, facts files, briefs) and the review of each. Load it before the first edit, also when the prompt or the issue names only one step.
 ---
 
 # Coordinate the dev team
