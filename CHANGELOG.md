@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.1](https://github.com/j3ko/agent-plugins/compare/v0.11.0...v0.11.1) (2026-11-23)
+
+
+### Bug Fixes
+
+* **orchestrate:** state when the workflow applies and load the skill for each PR task ([#56](https://github.com/j3ko/agent-plugins/issues/56)) ([0800f53](https://github.com/j3ko/agent-plugins/commit/0800f533eb0cbe8eeea47b01d123fa0f745d162f))
+
 ## [0.11.0](https://github.com/j3ko/agent-plugins/compare/v0.10.1...v0.11.0) (2026-11-22)
 
 
