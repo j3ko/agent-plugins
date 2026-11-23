@@ -1,11 +1,18 @@
 ---
 name: orchestrate
-description: Coordinate scoped software implementation, verified research and independent PR review using dev-team agents. Use when delegating project work or running its implementation and review loop.
+description: Run each repository task that ends in a PR, through a spec, an implementer and an independent reviewer. Applies to code, scripts, CI, design documents (decision records, facts files, briefs) and the review of each. Load it before the first edit, also when the prompt or the issue names only one step.
 ---
 
 # Coordinate the dev team
 
-Keep design decisions in the main session. Keep the conversation with the owner in the main session. Delegate bounded detail work to an implementer, a researcher or a reviewer. Do small mechanical edits yourself, because each new agent has a cost.
+Keep design decisions in the main session. Keep the conversation with the owner in the main session. Delegate bounded detail work to an implementer, a researcher or a reviewer. Do a trivial edit yourself (see "When the workflow applies"), because each new agent has a cost.
+
+## When the workflow applies
+
+- **Each task that ends in a PR goes through this workflow:** code, scripts, CI, design documents, and the review of each. This applies also when an issue or a prompt names only one step of the task.
+- **The author of a change never reviews it.** A reviewer agent does each review that "Review loop" requires, also a review that the project defines, such as a claims review.
+- **The one exception is a trivial edit:** a typo, a wording edit with the same meaning, or one configuration value. It changes no behavior and no claim. Write in its PR description that it did not use the workflow. If you are not sure that an edit is trivial, use the workflow.
+- **The project instructions can add to this list or remove from it.** Keep those changes in the project.
 
 Before you delegate, read the project instructions and the delegation contract. Use the exact project commands for setup, checks, signing, the tracker and PRs. Read only the decisions and issues that the task touches. Existing authorization from the user stays valid. If the user already authorized the work, do not add a new approval step.
 
@@ -53,10 +60,10 @@ Before you launch an implementer, make sure that the authorized workflow can com
 
 1. Wait for the implementer to open or update its scoped PR and send its report.
 2. Check CI in the main session.
-3. For changes to code, scripts, CI or design documents, get an independent reviewer. Design documents are files that record project decisions, facts or planned work for agents to follow, such as decision records, facts files and briefs. Changes to only other docs or only configuration do not need review, unless the project requires it.
+3. For changes to code, scripts, CI or design documents, get an independent reviewer. Design documents are files that record project decisions, facts or planned work for agents to follow, such as decision records, facts files and briefs. A change to only other docs does not need review, unless the project requires it. A change to one configuration value is a trivial edit (see "When the workflow applies").
 4. Give the reviewer the PR, the branch or head commit, and the spec. The reviewer uses a separate worktree, runs the required checks and reports verified findings.
 5. Send actionable findings back as a small fix-up spec for the same PR branch.
-6. If a few mechanical edits are cheaper to do yourself, do them directly.
+6. If a fix is a trivial edit (see "When the workflow applies"), do it yourself. Send each other fix to the implementer.
 7. If the fix changes logic, get a new review.
 8. Give the PR to the owner. Include the validation, relevant findings and remaining owner-only actions.
 9. Never merge without explicit authorization.
@@ -68,9 +75,9 @@ If an agent reports that it is blocked, inspect the exact refusal. Keep the work
 ## Cost and scope
 
 - Run independent work in parallel only after you assign files and worktrees that do not overlap.
-- During planning or discussion, do not delegate, unless the user requests it or the project workflow requires it.
+- During planning or discussion, do not delegate, unless the user requests it. A design document that ends in a PR is not planning. It goes through the workflow (see "When the workflow applies").
 - Keep handoffs, source reads and reports concise.
-- Before you resume an agent, inspect its existing work. If only a small edit remains, do it yourself.
+- Before you resume an agent, inspect its existing work. If only a trivial edit remains, do it yourself.
 - Apply authorization and owner-only restrictions to every agent. Available tools and credentials do not authorize external messages, settings changes or deployments.
 - If the project has a proposal tracker, put out-of-scope ideas there.
 - Keep project-specific commands and policies in the project instructions. Do not put them in this shared plugin.
