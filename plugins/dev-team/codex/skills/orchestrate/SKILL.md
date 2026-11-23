@@ -5,7 +5,14 @@ description: Run each repository task that ends in a PR, through a spec, an impl
 
 # Coordinate the dev team
 
-Keep design decisions in the main session. Keep the conversation with the owner in the main session. Delegate bounded detail work to an implementer, a researcher or a reviewer. Do small mechanical edits yourself, because each new agent has a cost.
+Keep design decisions in the main session. Keep the conversation with the owner in the main session. Delegate bounded detail work to an implementer, a researcher or a reviewer. Do a trivial edit yourself (see "When the workflow applies"), because each new agent has a cost.
+
+## When the workflow applies
+
+- **Each task that ends in a PR goes through this workflow:** code, scripts, CI, design documents, and the review of each. This applies also when an issue or a prompt names only one step of the task.
+- **The author of a change never reviews it.** A reviewer agent does each review that "Review loop" requires, also a review that the project defines, such as a claims review.
+- **The one exception is a trivial edit:** a typo, a wording edit with the same meaning, or one configuration value. It changes no behavior and no claim. Write in its PR description that it did not use the workflow. If you are not sure that an edit is trivial, use the workflow.
+- **The project instructions can add to this list or remove from it.** Keep those changes in the project.
 
 Before you delegate, read the project instructions and the delegation contract. Use the exact project commands for setup, checks, signing, the tracker and PRs. Read only the decisions and issues that the task touches. Existing authorization from the user stays valid. If the user already authorized the work, do not add a new approval step.
 
