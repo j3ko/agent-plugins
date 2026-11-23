@@ -40,6 +40,17 @@ Codex checks for plugin updates when it starts. After an update, Codex can ask
 you to trust the hook again. If it asks, review the hook and trust it again.
 If the hook reports role changes, restart Codex.
 
+## Project setup
+
+Add this line to the instructions that the agent always loads: `AGENTS.md` for Codex,
+`CLAUDE.md` for Claude Code, or both through a link.
+
+> Load `/dev-team:orchestrate` (`$orchestrate` in Codex) before the first edit of each
+> task that ends in a PR.
+
+The skill tells when the workflow applies. Put only the rules of the project in the
+project instructions, for example its own review procedures or its exceptions.
+
 ## Skills
 
 | Skill | Description | Claude Code | Codex |
