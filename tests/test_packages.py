@@ -56,6 +56,12 @@ class PackageTests(unittest.TestCase):
                     self.assertEqual(config['developer_instructions'],
                                      (self.root / f'shared/dev-team/roles/{role}.md').read_text())
 
+    def test_codex_package_has_no_hooks(self):
+        package = self.root / 'plugins/dev-team/codex'
+        manifest = json.loads((package / '.codex-plugin/plugin.json').read_text())
+        self.assertNotIn('hooks', manifest)
+        self.assertFalse((package / 'hooks').exists())
+
     def test_claude_package_is_versioned_by_commit_not_a_pinned_string(self):
         manifest = json.loads((self.root / 'plugins/dev-team/claude/.claude-plugin/plugin.json').read_text())
         self.assertNotIn('version', manifest)
