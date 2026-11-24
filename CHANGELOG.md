@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.12.1](https://github.com/j3ko/agent-plugins/compare/v0.12.0...v0.12.1) (2026-11-24)
+
+
+### Bug Fixes
+
+* **implementer:** continue on a gap that is not material ([#71](https://github.com/j3ko/agent-plugins/issues/71)) ([f61c8af](https://github.com/j3ko/agent-plugins/commit/f61c8afc94f92e642cd9923d26c553d3829fc327))
+* **orchestrate:** keep role worktrees until the end of the review loop ([#69](https://github.com/j3ko/agent-plugins/issues/69)) ([e2cbdad](https://github.com/j3ko/agent-plugins/commit/e2cbdad1d49a2f7d8072b05dceaa19fca54e93f3))
+
 ## [0.12.0](https://github.com/j3ko/agent-plugins/compare/v0.11.1...v0.12.0) (2026-11-24)
 
 
