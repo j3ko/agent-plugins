@@ -32,10 +32,6 @@ The trusted hook installs three personal agent roles in `$CODEX_HOME/agents`.
 The default location is `~/.codex/agents`. The hook also updates these roles
 and keeps local edits.
 
-The plugin also adds a rule for long-running work to each session and each
-subagent. It does this through `SessionStart` and `SubagentStart` hooks. You
-must trust these hooks in `/hooks`.
-
 Codex checks for plugin updates when it starts. After an update, Codex can ask
 you to trust the hook again. If it asks, review the hook and trust it again.
 If the hook reports role changes, restart Codex.
@@ -51,6 +47,10 @@ Codex, `CLAUDE.md` for Claude Code, or both through a link.
 > Load `/dev-team:writing-for-agents` (`$writing-for-agents` in Codex) before you write
 > or edit technical prose: documentation, agent instructions, code comments, commit
 > messages, PR descriptions and issues.
+
+To enable the wait rule for long-running work in Codex, add this line to `AGENTS.md`:
+
+> For long-running commands and subagents, start the work once. If Codex sends a completion notification, wait for it before checking. Otherwise, prefer a blocking wait. For background commands, keep the session ID and call `write_stdin` with empty input and the longest supported `yield_time_ms`. For commands that run to completion, set `timeout_ms` long enough to finish. For subagents, use `wait_agent` with a timeout of several minutes. Use the wait tools in place of `sleep` or repeated log reads. Collect the final output and exit status. Confirm that the tool call succeeded before you report a task, wait or notification.
 
 The orchestrate skill tells when the workflow applies. The writing-for-agents skill gives
 the language rules. Put only the rules of the project in the project instructions, for
