@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.12.0](https://github.com/j3ko/agent-plugins/compare/v0.11.1...v0.12.0) (2026-11-24)
+
+
+### Features
+
+* **bootstrap:** add a skill that installs the project setup lines ([#65](https://github.com/j3ko/agent-plugins/issues/65)) ([74d25ae](https://github.com/j3ko/agent-plugins/commit/74d25aeb7e2193ee5644a7e4d00821819eb5cc2a))
+
+
+### Bug Fixes
+
+* **codex:** make the wait rule opt-in ([#62](https://github.com/j3ko/agent-plugins/issues/62)) ([9a7e253](https://github.com/j3ko/agent-plugins/commit/9a7e253efa9e959977e08472ed03690380ea2f6e))
+* **codex:** remove the role synchronization hook ([#63](https://github.com/j3ko/agent-plugins/issues/63)) ([23f7d44](https://github.com/j3ko/agent-plugins/commit/23f7d4461f23fb179e2525f5c1ec5e4137116245))
+
 ## [0.11.1](https://github.com/j3ko/agent-plugins/compare/v0.11.0...v0.11.1) (2026-11-23)
 
 
