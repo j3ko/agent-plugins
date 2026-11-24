@@ -19,7 +19,7 @@ two names lead to it.
 | `CLAUDE.md` links or imports `AGENTS.md`, or the reverse | Edit the real file once. |
 | `AGENTS.md` only | Put the block in it. Offer a `CLAUDE.md` symlink, because Claude Code does not read `AGENTS.md`. |
 | `CLAUDE.md` only | Put the block in it. If Codex is installed, or the user wants the wait rule, offer two options: create `AGENTS.md` with its own block, or move the content to `AGENTS.md` and link `CLAUDE.md` to it. Recommend the option with the fewest changes. |
-| Two separate files | Put a block in each. Put the wait rule only in `AGENTS.md`. |
+| Two separate files | Put a block in each. Put the wait rule only in the file that Codex loads: `AGENTS.md`, or the `AGENTS.override.md` that the user chose (see "Files that the skill only reads"). |
 
 Symlinks do not work if `git config core.symlinks` is `false`, or if the
 system is Windows without the right to create symlinks.
@@ -74,7 +74,7 @@ the installer.
 
 If no file needs a change, report "no changes", write nothing and stop. Before
 you stop, report each conflict that you found in a file that the skill only
-reads (`CLAUDE.local.md`, the user-global files). This is the only place that
+reads (see "Files that the skill only reads"). This is the only place that
 states this rule.
 
 Find each start and end line before you plan an edit.

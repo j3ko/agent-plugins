@@ -78,8 +78,8 @@ user rejects the plan, the run ends with no changes.
 
 Do only the approved actions. If the creation of the `CLAUDE.md` symlink fails,
 stop that action and report it. Offer the `@AGENTS.md` fallback in a revised
-plan. Do not switch to the fallback without approval. Before you write a file, make sure that it has not
-changed since Inspect. If it changed, stop and inspect again. Do not commit. Keep
+plan. Do not switch to the fallback without approval. Before you write a file,
+make sure that it has not changed since Inspect. If it changed, stop and inspect again. Do not commit. Keep
 the encoding, line endings and trailing newline of each edited file.
 
 ## 5. Verify
