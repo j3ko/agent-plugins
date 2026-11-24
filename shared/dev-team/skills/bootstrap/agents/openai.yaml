@@ -1,0 +1,5 @@
+interface:
+  display_name: "Bootstrap"
+  short_description: "Install the dev-team setup lines in a project."
+policy:
+  allow_implicit_invocation: false
