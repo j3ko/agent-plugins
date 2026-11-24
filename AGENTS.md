@@ -31,5 +31,6 @@ unrelated agent files or external services. Use temporary project directories to
 installers.
 
 Use signed Conventional Commits, and use `gh` to open each PR. Get an independent review
-also of a change to only the prose of a skill, a role prompt or a reference, because
-that prose changes agent behavior.
+of each change to agent behavior. This includes a change to a skill, a role prompt, a
+reference, the role metadata in `adapters/` or `shared/dev-team/plugin.toml`, or this
+file.
