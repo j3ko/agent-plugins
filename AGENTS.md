@@ -4,16 +4,13 @@ The shared dev-team prompts are in `shared/dev-team/`. The host metadata is in `
 The command `python3 scripts/build.py` generates `plugins/`, `.agents/plugins/marketplace.json`
 and `.claude-plugin/marketplace.json`. Edit the sources of these files. Then generate them again.
 
-Write all technical prose with the ASD-STE100 Simplified Technical English writing
-rules. Technical prose includes README files, `AGENTS.md`, skills, role prompts,
-references, code comments, docstrings, error messages, commit messages, PR
-descriptions and issues. The ASD-STE100 controlled dictionary is optional. Use
-short sentences, active voice and consistent terms. Preserve exact code, commands,
-identifiers, quoted text and required technical terms. These are the only exceptions:
+Load `/dev-team:orchestrate` (`$orchestrate` in Codex) before the first edit of each
+task that ends in a PR.
 
-- Text that you quote or copy from a different source.
-- Text that a tool generates, such as `CHANGELOG.md`.
-- Legal text, such as a `LICENSE` file.
+Load `/dev-team:writing-for-agents` (`$writing-for-agents` in Codex) before you write
+or edit technical prose: documentation, agent instructions, code comments, commit
+messages, PR descriptions and issues. In this repository, technical prose also
+includes docstrings and error messages.
 
 The `writing-for-agents` and `retro` skills started as copies of upstream text. This
 repository does not track that upstream. Thus, the copy exception does not apply to
@@ -33,12 +30,7 @@ Make sure that plugin installation does not silently change permissions, authent
 unrelated agent files or external services. Use temporary project directories to test
 installers.
 
-After the initial bootstrap, use this workflow for each change:
-
-1. Create a branch.
-2. Use signed Conventional Commits.
-3. Use `gh` to open a GitHub PR.
-4. Do not merge unless you get a request to merge.
-
-Get an independent review of changes to scripts or agent behavior. Keep generated outputs
-synchronized with their sources.
+Use signed Conventional Commits, and use `gh` to open each PR. Get an independent review
+of each change to agent behavior. This includes a change to a skill, a role prompt, a
+reference, the role metadata in `adapters/` or `shared/dev-team/plugin.toml`, or this
+file.
