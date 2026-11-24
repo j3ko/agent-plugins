@@ -28,16 +28,9 @@ def outputs(root: Path) -> dict[str, str]:
     result[f"{base}/claude/.claude-plugin/plugin.json"] = json_file(
         {**claude_identity, "author": {"name": "j3ko"}}
     )
-    # Codex's portable root plugin.json currently bypasses hook loading and
-    # shadows the compatibility manifest. Keep only .codex-plugin/plugin.json.
-    # Upstream: https://github.com/openai/codex/issues/47925
     result[f"{base}/codex/.codex-plugin/plugin.json"] = json_file(
-        {**identity, "skills": "./skills/", "hooks": "./hooks/hooks.json"}
+        {**identity, "skills": "./skills/"}
     )
-    for path in sorted((root / "adapters/codex/hooks").glob("*")):
-        if path.is_symlink() or not path.is_file():
-            raise ValueError(f"Hook sources must be regular files: {path}")
-        result[f"{base}/codex/hooks/{path.name}"] = path.read_text()
     for host in ("claude", "codex"):
         adapter = tomllib.loads((root / f"adapters/{host}.toml").read_text())
         if set(adapter["roles"]) != set(meta["roles"]):

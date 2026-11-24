@@ -4,45 +4,17 @@ Use the custom agents `dev-team-implementer`, `dev-team-researcher` and `dev-tea
 
 ## Role installation
 
-The trusted `SessionStart` hook of the plugin installs the three role files in `$CODEX_HOME/agents`. The default location is `~/.codex/agents`. The hook also keeps these files up to date. The hook requires Python 3.11 or later.
+From an up-to-date clone of this repository, run the installer with Python 3.11 or later.
 
-1. Use `/hooks` to review the hook command.
-2. Use `/hooks` to trust the hook command.
-3. After a plugin bundle update, trust the hook again if Codex requests it. Codex can request this when the command does not change.
-4. If the hook reports installed or updated roles, fully restart Codex.
+```sh
+python3 scripts/install_codex.py --project /path/to/project --agents-only
+```
 
-The hook runs after Codex loads the roles. Thus, a new thread in the same process is not sufficient.
+The installer writes the three role files to `.codex/agents/` in the project. Omit `--agents-only` if you also need to install the skills from the clone. Start a new Codex session after installation.
 
-## Synchronization
+To update the roles, update the clone and run the installer again. Review any files that differ before using `--replace`. Get authorization from the user before changing the project configuration.
 
-Synchronization uses persistent hashes in `PLUGIN_DATA`. All plugin cache versions use the same hashes. The hook applies these rules:
-
-- It replaces a role file only if the file is identical to the last managed version.
-- It adopts a file that is already identical.
-- It keeps an unmanaged or locally edited file that is different, and shows a warning.
-- If the state is not valid, it keeps existing files that are different.
-- If `PLUGIN_DATA` is missing, it does not synchronize.
-- If a path contains an unsafe symbolic link, it does not synchronize.
-- An older package version never replaces roles that a newer release manages.
-
-To manage a conflicting file again, do these steps:
-
-1. Inspect the personal role file.
-2. Move or remove the file.
-3. Restart Codex.
-
-When roles change, package maintainers must increase the plugin version.
-
-Project overrides in `.codex/agents/` have priority over these personal roles. The hook never changes project overrides. If you uninstall the plugin, the personal role copies stay. To remove them, delete the three `dev-team-*.toml` files. The hook does not change configuration, authentication or permission settings.
-
-## Manual fallback
-
-Use the installer from a clone of this repository:
-
-- If the skill is already installed as a plugin, run `python3 scripts/install_codex.py --project /path/to/project --agents-only`.
-- To install the roles and the skill, remove `--agents-only` from the command.
-
-The installer writes project overrides. Before you use `--replace`, review the files that are different. Never change the project configuration without authorization from the user. After an update, run the installer again to update the project copies.
+If an older plugin installed personal copies in `$CODEX_HOME/agents` (usually `~/.codex/agents`), review those files for local edits. The project copies take priority. The installer leaves the personal copies in place.
 
 ## Model and effort
 
@@ -51,7 +23,7 @@ The generated roles do not set a model or reasoning effort. Thus, the orchestrat
 Codex custom role settings have priority over explicit spawn values. If an older loaded role or a local override sets either field, runtime selection can fail. Do these steps:
 
 1. Inspect conflicts.
-2. After managed role updates, fully restart Codex.
+2. After role updates, start a new Codex session.
 3. Keep edits from the owner.
 4. Before dispatch, report a pinned value that is not compatible.
 
