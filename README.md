@@ -42,13 +42,15 @@ If the hook reports role changes, restart Codex.
 
 ## Project setup
 
-Add this line to the instructions that the agent always loads: `AGENTS.md` for Codex,
+Add these two lines to the instructions that the agent always loads: `AGENTS.md` for Codex,
 `CLAUDE.md` for Claude Code, or both through a link.
 
 > Load `/dev-team:orchestrate` (`$orchestrate` in Codex) before the first edit of each
 > task that ends in a PR.
 
-The skill tells when the workflow applies. Put only the rules of the project in the
+> Load `/dev-team:writing-for-agents` (`$writing-for-agents` in Codex) before you write or edit technical prose: documentation, agent instructions, code comments, commit messages, PR descriptions and issues.
+
+The orchestrate skill tells when the workflow applies. The writing-for-agents skill gives the language rules. Put only the rules of the project in the
 project instructions, for example its own review procedures or its exceptions.
 
 ## Skills
