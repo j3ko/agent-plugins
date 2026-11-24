@@ -21,8 +21,8 @@ not change global or user files.
 Read the project. Find and record:
 
 - The repository root (`git rev-parse --show-toplevel`). If the directory is
-  not a Git repository, note that Git cannot undo the change. If it is a linked
-  worktree, note it.
+  not a Git repository, the current directory is the project root. Note that Git
+  cannot undo the change. If it is a linked worktree, note it.
 - The project agent files: `AGENTS.md`, `AGENTS.override.md`, `CLAUDE.md`,
   `.claude/CLAUDE.md`, `CLAUDE.local.md`, `.claude/rules/`, and nested
   `AGENTS.md` and `CLAUDE.md` files in subdirectories.
@@ -32,8 +32,9 @@ Read the project. Find and record:
   links that point outside the repository, Git status (tracked, ignored,
   uncommitted changes), signs that a tool generates the file, encoding, line
   endings, trailing newline and write permission.
-- The user-global files `~/.claude/CLAUDE.md` and `$CODEX_HOME/AGENTS.md` (or
-  `~/.codex/AGENTS.md`). Read them for conflicts only.
+- The user-global files `~/.claude/CLAUDE.md`, and `AGENTS.override.md` and
+  `AGENTS.md` in the Codex home (`$CODEX_HOME`, or `~/.codex`). Read them for
+  conflicts only.
 - Whether Codex is installed, and whether the project has
   `.codex/agents/dev-team-*.toml`.
 - Any earlier bootstrap block, and the state of its markers.
@@ -57,14 +58,17 @@ approve or change the items one at a time. The plan lists:
 4. Manual follow-ups, for example the Codex role installation.
 5. Questions for the user.
 
-If no file needs a change, report "no changes" and stop.
+If no file needs a change, follow the "no changes" rule in
+[`references/scenarios.md`](references/scenarios.md).
 
 ## 3. Approval
 
-In Claude Code, use the question tool. In Codex, present the plan and wait for a
-reply. If the user asks for changes, revise the plan and present it again.
-Continue only after the user approves. Approval of some items covers only those
-items.
+Present the full numbered plan as a message, in both hosts. The user approves,
+changes or rejects it with a reply. In Claude Code, use the question tool only
+for a single question with few options, never for one option per plan item. If
+the user asks for changes, revise the plan and present it again. Continue only
+after the user approves. Approval of some items covers only those items. If the
+user rejects the plan, the run ends with no changes.
 
 ## 4. Apply
 
@@ -76,9 +80,13 @@ the encoding, line endings and trailing newline of each edited file.
 
 Read each changed file again. Make sure that:
 
-- Each file has exactly one well-formed block.
+- Each file that the plan changed has exactly one well-formed block. For a
+  symlink or an import file (for example a `CLAUDE.md` that holds only
+  `@AGENTS.md`), make sure that the link or import resolves to the file that
+  has the block.
 - Each link resolves.
-- The text in each block equals the text in `references/project-setup.md`.
+- The text in each block equals the text that the plan chose for that file:
+  the text in `references/project-setup.md`, with or without the wait rule.
 
 Report the result. Offer to commit the changes. Tell the user to start a new
 agent session, so that the agents load the new instructions.

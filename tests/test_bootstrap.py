@@ -73,6 +73,15 @@ class BootstrapTests(unittest.TestCase):
                 resolved = (path.parent / target).resolve()
                 self.assertTrue(resolved.is_relative_to(ROOT / 'shared/dev-team'), f'{path}: {target}')
 
+    def test_sibling_skills_exist_in_both_host_packages(self):
+        text = (ROOT / SKILL / 'references/scenarios.md').read_text()
+        names = set(re.findall(r'`\.\./([a-z-]+)/SKILL\.md`', text))
+        self.assertEqual(names, {'orchestrate', 'writing-for-agents'})
+        for host in ('claude', 'codex'):
+            for name in names:
+                path = ROOT / 'plugins/dev-team' / host / 'skills/bootstrap' / '..' / name / 'SKILL.md'
+                self.assertTrue(path.resolve().is_file(), str(path))
+
 
 if __name__ == '__main__':
     unittest.main()
