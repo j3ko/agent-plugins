@@ -4,13 +4,17 @@ The shared dev-team prompts are in `shared/dev-team/`. The host metadata is in `
 The command `python3 scripts/build.py` generates `plugins/`, `.agents/plugins/marketplace.json`
 and `.claude-plugin/marketplace.json`. Edit the sources of these files. Then generate them again.
 
-Load `/dev-team:orchestrate` (`$orchestrate` in Codex) before the first edit of each
-task that ends in a PR.
+<!-- dev-team:bootstrap start -->
 
-Load `/dev-team:writing-for-agents` (`$writing-for-agents` in Codex) before you write
-or edit technical prose: documentation, agent instructions, code comments, commit
-messages, PR descriptions and issues. In this repository, technical prose also
-includes docstrings and error messages.
+Load `/dev-team:orchestrate` (`$orchestrate` in Codex) before the first edit of each task that ends in a PR.
+
+Load `/dev-team:writing-for-agents` (`$writing-for-agents` in Codex) before you write or edit technical prose: documentation, agent instructions, code comments, commit messages, PR descriptions and issues.
+
+For long-running commands and subagents, start the work once. If Codex sends a completion notification, wait for it before checking. Otherwise, prefer a blocking wait. For background commands, keep the session ID and call `write_stdin` with empty input and the longest supported `yield_time_ms`. For commands that run to completion, set `timeout_ms` long enough to finish. For subagents, use `wait_agent` with a timeout of several minutes. Use the wait tools in place of `sleep` or repeated log reads. Collect the final output and exit status. Confirm that the tool call succeeded before you report a task, wait or notification.
+
+<!-- dev-team:bootstrap end -->
+
+In this repository, technical prose also includes docstrings and error messages.
 
 The `writing-for-agents` and `retro` skills started as copies of upstream text. This
 repository does not track that upstream. Thus, the copy exception does not apply to
