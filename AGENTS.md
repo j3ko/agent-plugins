@@ -30,12 +30,6 @@ Make sure that plugin installation does not silently change permissions, authent
 unrelated agent files or external services. Use temporary project directories to test
 installers.
 
-After the initial bootstrap, use this workflow for each change:
-
-1. Create a branch.
-2. Use signed Conventional Commits.
-3. Use `gh` to open a GitHub PR.
-4. Do not merge unless you get a request to merge.
-
-Get an independent review of changes to scripts or agent behavior. Keep generated outputs
-synchronized with their sources.
+Use signed Conventional Commits, and use `gh` to open each PR. Get an independent review
+also of a change to only the prose of a skill, a role prompt or a reference, because
+that prose changes agent behavior.
