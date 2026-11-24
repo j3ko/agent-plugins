@@ -25,7 +25,11 @@ Read the project. Find and record:
   cannot undo the change. If it is a linked worktree, note it.
 - The project agent files: `AGENTS.md`, `AGENTS.override.md`, `CLAUDE.md`,
   `.claude/CLAUDE.md`, `CLAUDE.local.md`, `.claude/rules/`, and nested
-  `AGENTS.md` and `CLAUDE.md` files in subdirectories.
+  `AGENTS.md`, `AGENTS.override.md` and `CLAUDE.md` files in subdirectories.
+  When you search for nested files, skip Git-ignored paths, other Git worktrees
+  (for example `.claude/worktrees/`), `.git/` and vendored dependency
+  directories (for example `node_modules/`). Never propose an edit in another
+  worktree.
 - The files that these files import with `@path`. Follow the imports
   recursively.
 - For each file: regular file or symlink, the symlink target, dangling links,
@@ -72,7 +76,9 @@ user rejects the plan, the run ends with no changes.
 
 ## 4. Apply
 
-Do only the approved actions. Before you write a file, make sure that it has not
+Do only the approved actions. If the creation of the `CLAUDE.md` symlink fails,
+stop that action and report it. Offer the `@AGENTS.md` fallback in a revised
+plan. Do not switch to the fallback without approval. Before you write a file, make sure that it has not
 changed since Inspect. If it changed, stop and inspect again. Do not commit. Keep
 the encoding, line endings and trailing newline of each edited file.
 
@@ -80,13 +86,17 @@ the encoding, line endings and trailing newline of each edited file.
 
 Read each changed file again. Make sure that:
 
-- Each file that the plan changed has exactly one well-formed block. For a
-  symlink or an import file (for example a `CLAUDE.md` that holds only
-  `@AGENTS.md`), make sure that the link or import resolves to the file that
-  has the block.
+- Each file that the plan chose as a block target has exactly one well-formed
+  block.
+- Each file where the plan only removed or replaced lines has the approved edit
+  and no marker.
+- Each import file has one block. The content of that block is exactly
+  `@AGENTS.md`, and the import resolves to the file that has the setup block.
+  A symlink resolves to the file that has the setup block.
 - Each link resolves.
-- The text in each block equals the text that the plan chose for that file:
-  the text in `references/project-setup.md`, with or without the wait rule.
+- The text in each setup block equals the text that the plan chose for that
+  file: the text in `references/project-setup.md`, with or without the wait
+  rule.
 
 Report the result. Offer to commit the changes. Tell the user to start a new
 agent session, so that the agents load the new instructions.

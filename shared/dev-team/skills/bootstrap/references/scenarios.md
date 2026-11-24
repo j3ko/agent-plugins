@@ -1,7 +1,8 @@
 # Rules for each project state
 
 Read this file in the Plan phase, after Inspect. Each section names one state.
-Apply the section that matches each target file.
+Apply the section that matches each target file. Each relative path in this file
+starts at the directory of this skill (`skills/bootstrap/`).
 
 ## Choose the target files
 
@@ -14,7 +15,7 @@ two names lead to it.
 | State | Plan |
 |---|---|
 | No agent files | Create `AGENTS.md` with the block. Create `CLAUDE.md` as a relative symlink to `AGENTS.md`. |
-| No agent files, and symlinks do not work | Create `AGENTS.md` with the block. Create `CLAUDE.md` that contains only `@AGENTS.md`. State this fallback in the plan. |
+| No agent files, and symlinks do not work | Create `AGENTS.md` with the block. Create `CLAUDE.md` that holds a block whose only content is the line `@AGENTS.md`. State this fallback in the plan. |
 | `CLAUDE.md` links or imports `AGENTS.md`, or the reverse | Edit the real file once. |
 | `AGENTS.md` only | Put the block in it. Offer a `CLAUDE.md` symlink, because Claude Code does not read `AGENTS.md`. |
 | `CLAUDE.md` only | Put the block in it. If Codex is installed, or the user wants the wait rule, offer two options: create `AGENTS.md` with its own block, or move the content to `AGENTS.md` and link `CLAUDE.md` to it. Recommend the option with the fewest changes. |
@@ -40,13 +41,14 @@ plan as a numbered question.
 - `AGENTS.override.md`: read it for conflicts. Edit it only if the user asks.
   Codex loads at most one file in each directory, and checks `AGENTS.override.md`
   before `AGENTS.md`. If a non-empty `AGENTS.override.md` exists in the project
-  root, or in a nested directory that has a target, state in the plan that Codex
+  root, state in the plan that Codex
   does not load `AGENTS.md` there. Ask which file gets the Codex block. The same
   rule applies to the Codex home: a global `AGENTS.md` is ignored when a
   non-empty global `AGENTS.override.md` exists. Read the global override for
   conflicts.
-- Nested `AGENTS.md` and `CLAUDE.md`: install only at the repository root.
-  Report nested files that conflict.
+- Nested `AGENTS.md`, `AGENTS.override.md` and `CLAUDE.md`: install only at the
+  repository root. Read the nested files for conflicts, and report each
+  conflict.
 
 ## Codex detection
 
@@ -65,19 +67,24 @@ above.
 
 If Codex is installed and the project has no `.codex/agents/dev-team-*.toml`,
 add a manual follow-up to the plan: run the role installation in
-`../../orchestrate/references/codex.md`, section "Role installation". Do not run
+`../orchestrate/references/codex.md`, section "Role installation". Do not run
 the installer.
 
 ## Earlier installation
 
-If no file needs a change, report "no changes", write nothing and stop. This is
-the only place that states this rule.
+If no file needs a change, report "no changes", write nothing and stop. Before
+you stop, report each conflict that you found in a file that the skill only
+reads (`CLAUDE.local.md`, the user-global files). This is the only place that
+states this rule.
 
 Find each start and end line before you plan an edit.
 
 | State of the file | Plan |
 |---|---|
 | One well-formed block, text equal to the current text | No change for this file. |
+| Marked import block (only the line `@AGENTS.md`) | A bootstrap installation. No change. |
+| Unmarked file that holds only `@AGENTS.md` | A best-effort match. Propose to wrap the line in markers. |
+| Symlink to the file that has the setup block | No change. It cannot hold a marker. Recognize it by its target. |
 | One well-formed block, text equal to a known version | Replace the contents with the current text. |
 | One well-formed block, text equal to no known version | The user edited it. Show the difference and ask. |
 | More than one block | Propose to merge them into one block. |

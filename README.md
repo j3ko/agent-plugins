@@ -31,8 +31,8 @@ the [Codex role installation instructions](shared/dev-team/skills/orchestrate/re
 
 Run `/dev-team:bootstrap` (`$bootstrap` in Codex) in the project. The skill only reads
 the project, then shows a plan. It changes files only after you approve the plan. You
-can change the plan first. If you reject the plan, the run ends with no changes. To run it again, use the same command. It replaces the
-earlier installation.
+can change the plan first. If you reject the plan, the run ends with no changes. To run
+it again, use the same command. It replaces the earlier installation.
 
 To install the lines yourself, add these two lines to the instructions that the agent
 always loads: `AGENTS.md` for Codex, `CLAUDE.md` for Claude Code, or both through a link.
