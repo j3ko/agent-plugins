@@ -42,8 +42,9 @@ Different worktrees can use the same Git hooks.
 5. Implement the change within the scope of the spec.
 6. At each milestone, make a local commit. A milestone is a state where the work builds and its tests pass. Section 5 gives the commit rules. If your run stops, a different agent can then continue from the branch.
 7. Handle each conflict and each gap yourself, unless it is material.
-   - A conflict is a spec decision that does not agree with the sources or with a recorded design decision. A gap is a behavior that the spec does not cover.
-   - A conflict or a gap is material only if it changes the scope, a public interface or the behavior that an acceptance check requires. A public interface includes an output file, for example a generated file or a report file that other tools read.
+   - A conflict is a spec decision that does not agree with the sources or with a recorded design decision. A gap is a behavior that users, callers or tests can observe and that the spec does not cover. A routine implementation detail, such as a name or an internal structure, is not a gap. Resolve it yourself and do not list it.
+   - A conflict with a recorded design decision is always material.
+   - Any other conflict or a gap is material only if it changes the scope, a public interface or the behavior that an acceptance check requires. A public interface includes an output file, for example a generated file or a report file that other tools read.
    - For a material item, stop and report it to the main session.
    - For all other items, use the reading that agrees with the sources. If no source applies, use the reading closest to the existing behavior. Continue, and list each item under "Deviations from spec" in the report.
 
