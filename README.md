@@ -29,8 +29,13 @@ the [Codex role installation instructions](shared/dev-team/skills/orchestrate/re
 
 ## Project setup
 
-Add these two lines to the instructions that the agent always loads: `AGENTS.md` for
-Codex, `CLAUDE.md` for Claude Code, or both through a link.
+Run `/dev-team:bootstrap` (`$bootstrap` in Codex) in the project. The skill only reads
+the project, then shows a plan. It changes files only after you approve the plan. You
+can change the plan first. If you reject the plan, the run ends with no changes. To run
+it again, use the same command. It replaces the earlier installation.
+
+To install the lines yourself, add these two lines to the instructions that the agent
+always loads: `AGENTS.md` for Codex, `CLAUDE.md` for Claude Code, or both through a link.
 
 > Load `/dev-team:orchestrate` (`$orchestrate` in Codex) before the first edit of each
 > task that ends in a PR.
@@ -51,6 +56,7 @@ example its own review procedures or its exceptions.
 
 | Skill | Description | Claude Code | Codex |
 |---|---|---|---|
+| [bootstrap](shared/dev-team/skills/bootstrap/SKILL.md) | Install the project setup lines in the agent instruction files of a project, after you approve a plan. Only the user can start it. | `/dev-team:bootstrap` | `$bootstrap` |
 | [handoff](shared/dev-team/skills/handoff/SKILL.md) | Save task context in issues, documentation PRs or an OS temp file, then clean up session resources. | `/dev-team:handoff` | `$handoff` |
 | [orchestrate](shared/dev-team/skills/orchestrate/SKILL.md) | Coordinate implementation, research and independent PR review with dedicated agents. | `/dev-team:orchestrate` | `$orchestrate` |
 | [retro](shared/dev-team/skills/retro/SKILL.md) | Review a coding session and propose improvements to the environment of the agent. Only the user can start it. | `/dev-team:retro` | `$retro` |
