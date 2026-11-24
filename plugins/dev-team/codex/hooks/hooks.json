@@ -7,22 +7,6 @@
             "type": "command",
             "command": "python3 \"${PLUGIN_ROOT}/hooks/sync_roles.py\"",
             "statusMessage": "Synchronize dev-team agent roles"
-          },
-          {
-            "type": "command",
-            "command": "python3 \"${PLUGIN_ROOT}/hooks/wait_rule.py\"",
-            "statusMessage": "Add dev-team wait rule"
-          }
-        ]
-      }
-    ],
-    "SubagentStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"${PLUGIN_ROOT}/hooks/wait_rule.py\"",
-            "statusMessage": "Add dev-team wait rule"
           }
         ]
       }
