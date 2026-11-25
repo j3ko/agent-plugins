@@ -46,7 +46,7 @@ The generated roles do not set a model or reasoning effort. Thus, the orchestrat
 Codex custom role settings have priority over explicit spawn values. If an older loaded role or a local override sets either field, runtime selection can fail. Do these steps:
 
 1. Inspect conflicts.
-2. After managed role updates, fully restart Codex.
+2. After the hook updates the roles, fully restart Codex.
 3. Keep edits from the owner.
 4. Before dispatch, report a pinned value that is not compatible.
 

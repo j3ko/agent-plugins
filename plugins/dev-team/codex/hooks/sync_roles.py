@@ -78,14 +78,18 @@ def version_tuple(value) -> tuple[int, ...]:
     return tuple(map(int, value.split(".")))
 
 
+def stamp() -> str:
+    return time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
+
+
 def backup(source: Path, directory: Path) -> Path:
     """Copy the bytes of source to a new file in directory and return its path."""
     safe(directory)
     directory.mkdir(parents=True, exist_ok=True)
-    stamp = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
+    moment = stamp()
     body = source.read_bytes()
     for number in range(10000):
-        path = directory / (f"{source.name}.{stamp}" + (f".{number}" if number else ""))
+        path = directory / (f"{source.name}.{moment}" + (f".{number}" if number else ""))
         safe(path)
         try:
             # Exclusive creation: an existing backup is never overwritten.
@@ -112,35 +116,48 @@ def newer_state_exists(state: Path, home: Path, release: tuple[int, ...]) -> boo
         return False
 
 
-def update_roles(package: Path, agents: Path, backups: Path | None) -> list[str]:
-    messages = []
-    refused = False
-    changed = False
+def update_roles(package: Path, agents: Path, backups: Path | None) -> tuple[list[str], bool]:
+    """Install or update the roles. Return the messages and True if no error occurred."""
+    # Preflight: check every role before the first write.
+    bodies = {name: (package / "agents" / name).read_bytes() for name in NAMES}
+    if backups is not None:
+        safe(backups)
+        if backups.exists() and not backups.is_dir():
+            raise ValueError(f"Not a directory: {backups}")
     for name in NAMES:
-        body = (package / "agents" / name).read_bytes()
         target = agents / name
         safe(target)
         if target.exists() and not target.is_file():
             raise ValueError(f"Not a regular file: {target}")
-        if not target.exists():
-            agents.mkdir(parents=True, exist_ok=True)
-            atomic_write(target, body)
-            messages.append(f"Installed {target}.")
-            changed = True
-        elif target.read_bytes() == body:
-            continue
-        elif backups is None:
-            refused = True
-        else:
-            saved = backup(target, backups)
-            atomic_write(target, body)
-            messages.append(f"Updated {target}. Backup of the previous file: {saved}.")
-            changed = True
+    messages = []
+    refused = False
+    try:
+        for name, body in bodies.items():
+            target = agents / name
+            if not target.exists():
+                agents.mkdir(parents=True, exist_ok=True)
+                atomic_write(target, body)
+                messages.append(f"Installed {target}.")
+            elif target.read_bytes() == body:
+                continue
+            elif backups is None:
+                refused = True
+            else:
+                saved = backup(target, backups)
+                atomic_write(target, body)
+                messages.append(f"Updated {target}. Backup of the previous file: {saved}.")
+    except (OSError, ValueError) as error:
+        # Report the writes that already happened before the error.
+        if messages:
+            messages.append("Restart Codex to load these changes.")
+        messages.append(f"dev-team role synchronization: {error}")
+        return messages, False
+    changed = bool(messages)
     if refused:
         messages.append("Roles that differ from the packaged files were not updated because no backup location exists (PLUGIN_DATA is missing or not absolute).")
     if changed:
         messages.append("Restart Codex to load these changes.")
-    return messages
+    return messages, True
 
 
 def synchronize(package: Path, home: Path, data: Path | None) -> list[str]:
@@ -151,7 +168,7 @@ def synchronize(package: Path, home: Path, data: Path | None) -> list[str]:
     if agents.exists() and not agents.is_dir():
         raise ValueError(f"Not a directory: {agents}")
     if data is None:
-        return update_roles(package, agents, None)
+        return update_roles(package, agents, None)[0]
     state = data / "dev-team-role-sync.json"
     lock = data / "dev-team-role-sync.lock"
     for path in (data, state, lock):
@@ -166,7 +183,9 @@ def synchronize(package: Path, home: Path, data: Path | None) -> list[str]:
         # Old cache copies must not undo a newer package's synchronization.
         if newer_state_exists(state, home, release):
             return ["Skipped older dev-team package; newer roles are already installed."]
-        messages = update_roles(package, agents, data / "backups")
+        messages, complete = update_roles(package, agents, data / "backups")
+        if not complete:
+            return messages
         encoded = (json.dumps({"version": 2, "package_version": version, "codex_home": str(home)}, indent=2) + "\n").encode()
         if not state.exists() or state.read_bytes() != encoded:
             atomic_write(state, encoded)

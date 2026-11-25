@@ -9,6 +9,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.dont_write_bytecode = True
@@ -99,14 +100,48 @@ class RoleSyncTests(unittest.TestCase):
         self.assertIn('Restart Codex to load these changes.', message)
 
     def test_two_updates_in_a_row_keep_two_backups(self):
-        self.run_hook()
-        self.role().write_bytes(b'first edit')
-        self.run_hook()
-        self.role().write_bytes(b'second edit')
-        self.run_hook()
+        sync_roles.synchronize(self.package, self.home, self.data)
+        # A fixed clock forces the second backup onto the name collision path.
+        with mock.patch.object(sync_roles, 'stamp', return_value='20200101T000000Z'):
+            self.role().write_bytes(b'first edit')
+            sync_roles.synchronize(self.package, self.home, self.data)
+            self.role().write_bytes(b'second edit')
+            sync_roles.synchronize(self.package, self.home, self.data)
         saved = self.backups()
-        self.assertEqual(len(saved), 2)
-        self.assertEqual(sorted(p.read_bytes() for p in saved), [b'first edit', b'second edit'])
+        self.assertEqual([p.name for p in saved],
+                         [f'{NAMES[0]}.20200101T000000Z', f'{NAMES[0]}.20200101T000000Z.1'])
+        self.assertEqual([p.read_bytes() for p in saved], [b'first edit', b'second edit'])
+
+    def test_unsafe_role_blocks_every_write(self):
+        self.run_hook()
+        self.role().write_bytes(b'local edit')
+        outside = self.root / 'outside'
+        outside.write_text('untouched')
+        self.role(NAMES[2]).unlink()
+        self.role(NAMES[2]).symlink_to(outside)
+        result = self.run_hook()
+        self.assertEqual(self.role().read_bytes(), b'local edit')
+        self.assertEqual(self.backups(), [])
+        self.assertEqual(outside.read_text(), 'untouched')
+        self.assertIn('Refusing symlink path', json.loads(result.stdout)['systemMessage'])
+
+    def test_failed_write_still_reports_earlier_updates(self):
+        self.run_hook()
+        self.role(NAMES[0]).write_bytes(b'edit one')
+        self.role(NAMES[1]).write_bytes(b'edit two')
+        real = sync_roles.atomic_write
+        def fail_on_second(path, body):
+            if path == self.role(NAMES[1]):
+                raise OSError('disk full')
+            real(path, body)
+        with mock.patch.object(sync_roles, 'atomic_write', fail_on_second):
+            messages = sync_roles.synchronize(self.package, self.home, self.data)
+        text = '\n'.join(messages)
+        first_backup = next(p for p in self.backups() if p.name.startswith(NAMES[0]))
+        self.assertIn(f'Updated {self.role(NAMES[0])}', text)
+        self.assertIn(str(first_backup), text)
+        self.assertIn('disk full', text)
+        self.assertIn('Restart Codex to load these changes.', text)
 
     def test_missing_plugin_data_installs_only_missing_roles(self):
         self.role().parent.mkdir(parents=True)
