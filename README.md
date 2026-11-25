@@ -29,12 +29,11 @@ After you add the plugin, do these steps:
 3. Restart Codex.
 
 The trusted hook installs three personal agent roles in `$CODEX_HOME/agents`.
-The default location is `~/.codex/agents`. The plugin owns these files. When a
-role file is different from the packaged file, the hook saves a backup in the
-plugin data directory and then overwrites the file. For each role, the hook keeps
-the backup that it just made and the four newest older backups. To customize a role, use a
-project override in `.codex/agents/`. It has priority. Do not edit the personal
-copies.
+The default location is `~/.codex/agents`. On each session start, the hook
+replaces any of these files that differs from the bundled version. Do not edit
+the copies. To customize a role, use a project override in `.codex/agents/`. It
+has priority. The hook is a workaround, because the Codex plugin manifest cannot
+declare agent roles ([openai/codex#36855](https://github.com/openai/codex/issues/36855)).
 
 Codex checks for plugin updates when it starts. To refresh the marketplace on
 demand, run `codex plugin marketplace upgrade j3ko-agents`. After an update, Codex can ask

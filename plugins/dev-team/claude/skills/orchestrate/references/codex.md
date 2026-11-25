@@ -4,7 +4,7 @@ Use the custom agents `dev-team-implementer`, `dev-team-researcher` and `dev-tea
 
 ## Role installation
 
-The trusted `SessionStart` hook of the plugin installs the three role files in `$CODEX_HOME/agents`. The default location is `~/.codex/agents`. The hook also keeps these files up to date. The hook requires Python 3.11 or later.
+The trusted `SessionStart` hook of the plugin installs the three role files in `$CODEX_HOME/agents`. The default location is `~/.codex/agents`. The hook also replaces any role that differs from the bundled version. The hook requires Python 3.11 or later.
 
 1. Use `/hooks` to review the hook command.
 2. Use `/hooks` to trust the hook command.
@@ -15,16 +15,11 @@ The hook runs after Codex loads the roles. Thus, a new thread in the same proces
 
 ## Synchronization
 
-The plugin owns the three files `$CODEX_HOME/agents/dev-team-{implementer,researcher,reviewer}.toml`. Do not edit them. The hook applies these rules:
-
-- If a role file is missing, it writes the file.
-- If a role file is identical to the packaged file, it does nothing.
-- If a role file is different, it first copies the file to `PLUGIN_DATA/backups/<name>.<UTC timestamp>`. It adds a number to the name if the name already exists. It never overwrites a backup. Then it writes the packaged file. The hook message gives the backup path. After each overwrite, the hook keeps the backup that it just made and the four newest older backups of that role. It removes the others. It reports a backup that it cannot remove, and the synchronization continues.
-- If `PLUGIN_DATA` is missing, it installs only missing roles. It does not overwrite a different file, because no backup location exists.
-- If a path contains an unsafe symbolic link, it does not synchronize.
-- An older package version never replaces roles that a newer package installed.
+The hook writes the three files `$CODEX_HOME/agents/dev-team-{implementer,researcher,reviewer}.toml`. On each session start, it creates a file that is missing and replaces a file that is different from the bundled version. It does nothing for an identical file. Do not edit these copies, because the next session start replaces them.
 
 To customize a role, use a project override in `.codex/agents/`. It has priority over the personal roles. The hook never changes project overrides.
+
+The hook is a workaround, because the Codex plugin manifest cannot declare agent roles (openai/codex#36855).
 
 When roles change, package maintainers must increase the plugin version. No other step is necessary.
 
