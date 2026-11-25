@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 import sys
@@ -28,9 +29,16 @@ def outputs(root: Path) -> dict[str, str]:
     result[f"{base}/claude/.claude-plugin/plugin.json"] = json_file(
         {**claude_identity, "author": {"name": "j3ko"}}
     )
+    # Codex's portable root plugin.json currently bypasses hook loading and
+    # shadows the compatibility manifest. Keep only .codex-plugin/plugin.json.
+    # Upstream: https://github.com/openai/codex/issues/47925
     result[f"{base}/codex/.codex-plugin/plugin.json"] = json_file(
-        {**identity, "skills": "./skills/"}
+        {**identity, "skills": "./skills/", "hooks": "./hooks/hooks.json"}
     )
+    for path in sorted((root / "adapters/codex/hooks").glob("*")):
+        if path.is_symlink() or not path.is_file():
+            raise ValueError(f"Hook sources must be regular files: {path}")
+        result[f"{base}/codex/hooks/{path.name}"] = path.read_text()
     for host in ("claude", "codex"):
         adapter = tomllib.loads((root / f"adapters/{host}.toml").read_text())
         if set(adapter["roles"]) != set(meta["roles"]):
@@ -54,7 +62,14 @@ def outputs(root: Path) -> dict[str, str]:
                 # Parse what we emit, including escaped Markdown and Unicode.
                 if tomllib.loads(text)["developer_instructions"] != prompt:
                     raise ValueError(f"{name}: instruction serialization changed content")
-                result[f"{base}/codex/agents/dev-team-{name}.toml"] = text
+                file_name = f"dev-team-{name}.toml"
+                known = json.loads((root / "adapters/codex/hooks/known_roles.json").read_text())
+                role_hash = hashlib.sha256(text.encode()).hexdigest()
+                if role_hash not in known.get(file_name, []):
+                    raise ValueError(
+                        f"{file_name}: add {role_hash} to adapters/codex/hooks/known_roles.json"
+                    )
+                result[f"{base}/codex/agents/{file_name}"] = text
         for path in sorted((source / "skills").rglob("*")):
             if path.is_symlink():
                 raise ValueError(f"Shared skill sources must be regular files: {path}")

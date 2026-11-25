@@ -15,17 +15,31 @@ To enable automatic updates, go to `/plugin` → Marketplaces → j3ko-agents �
 
 ### Codex CLI
 
+The Codex plugin requires Python 3.11 or later.
+
 ```sh
 codex plugin marketplace add j3ko/agent-plugins
 codex plugin add dev-team@j3ko-agents
 ```
 
-Codex checks for plugin updates when it starts. To refresh the marketplace on
-demand, run `codex plugin marketplace upgrade j3ko-agents`.
+After you add the plugin, do these steps:
 
-To use `$orchestrate`, install the three agent roles in each project from a
-clone of this repository. The installer requires Python 3.11 or later. Follow
-the [Codex role installation instructions](shared/dev-team/skills/orchestrate/references/codex.md#role-installation).
+1. In `/hooks`, review the dev-team startup hook.
+2. Trust the hook.
+3. Restart Codex.
+
+The trusted hook installs three personal agent roles in `$CODEX_HOME/agents`.
+The default location is `~/.codex/agents`. The hook also updates a role file
+that is identical to any released version of that role. It keeps and reports
+each file that you edited.
+
+Codex checks for plugin updates when it starts. After an update, Codex can ask
+you to trust the hook again. If it asks, review the hook and trust it again.
+If the hook reports role changes, restart Codex.
+
+If you prefer project roles to a hook, do not trust the hook. Use the
+[project-scoped installer](shared/dev-team/skills/orchestrate/references/codex.md#manual-fallback)
+from a clone of this repository.
 
 ## Project setup
 
