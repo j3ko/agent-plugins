@@ -61,8 +61,7 @@ def outputs(root: Path) -> dict[str, str]:
                 # Parse what we emit, including escaped Markdown and Unicode.
                 if tomllib.loads(text)["developer_instructions"] != prompt:
                     raise ValueError(f"{name}: instruction serialization changed content")
-                file_name = f"dev-team-{name}.toml"
-                result[f"{base}/codex/agents/{file_name}"] = text
+                result[f"{base}/codex/agents/dev-team-{name}.toml"] = text
         for path in sorted((source / "skills").rglob("*")):
             if path.is_symlink():
                 raise ValueError(f"Shared skill sources must be regular files: {path}")

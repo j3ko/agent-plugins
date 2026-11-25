@@ -63,6 +63,8 @@ class RoleSyncTests(unittest.TestCase):
         self.role().write_bytes(b'local edit')
         message = json.loads(self.run_hook().stdout)['systemMessage']
         self.assertEqual(self.role().read_bytes(), self.packaged())
+        self.assertEqual(self.role().stat().st_mode & 0o777,
+                         (self.package / 'agents' / NAMES[0]).stat().st_mode & 0o777)
         self.assertIn(str(self.role()), message)
         self.assertNotIn(str(self.role(NAMES[1])), message)
         self.assertIn(RESTART, message)
@@ -86,10 +88,10 @@ class RoleSyncTests(unittest.TestCase):
 
     def test_failed_write_reports_earlier_roles_and_the_error(self):
         real = sync_roles.atomic_write
-        def fail_on_second(path, body):
+        def fail_on_second(path, body, mode):
             if path == self.role(NAMES[1]):
                 raise OSError('disk full')
-            real(path, body)
+            real(path, body, mode)
         with mock.patch.object(sync_roles, 'atomic_write', fail_on_second):
             messages = sync_roles.synchronize(self.package, self.home)
         text = '\n'.join(messages)
@@ -99,6 +101,22 @@ class RoleSyncTests(unittest.TestCase):
         self.assertEqual(messages[-1], 'dev-team role synchronization: disk full')
         self.assertTrue(self.role(NAMES[0]).is_file())
         self.assertFalse(self.role(NAMES[1]).exists())
+
+    def test_failed_file_write_leaves_no_temporary_file(self):
+        real = os.fdopen
+        class Failing:
+            def __init__(self, stream):
+                self.stream = stream
+            def __enter__(self):
+                return self
+            def __exit__(self, *args):
+                self.stream.close()
+            def write(self, body):
+                raise OSError('no space')
+        with mock.patch.object(sync_roles.os, 'fdopen', lambda *a, **k: Failing(real(*a, **k))):
+            messages = sync_roles.synchronize(self.package, self.home)
+        self.assertEqual(messages, ['dev-team role synchronization: no space'])
+        self.assertEqual(list((self.home / 'agents').iterdir()), [])
 
     def test_hook_wiring_handles_plugin_root_with_spaces(self):
         self.assertFalse((self.package / 'plugin.json').exists())
