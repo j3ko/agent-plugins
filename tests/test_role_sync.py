@@ -11,6 +11,9 @@ import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.dont_write_bytecode = True
+sys.path.insert(0, str(ROOT / 'adapters/codex/hooks'))
+import sync_roles  # noqa: E402
 NAMES = tuple(f'dev-team-{role}.toml' for role in ('implementer', 'researcher', 'reviewer'))
 
 
@@ -107,47 +110,68 @@ class RoleSyncTests(unittest.TestCase):
         self.assertEqual(self.role().read_bytes(), original)
         self.assertNotIn(NAMES[0], json.loads(self.state.read_text())['hashes'])
 
-    def released_role(self, name=NAMES[0]):
-        """Return the packaged role text, changed to look like an older release."""
-        return (self.package / 'agents' / name).read_text() + '\n# older release\n'
+    def marked_body(self, text: str) -> bytes:
+        """Return a marked role file for the given content below the marker."""
+        rest = text.encode()
+        return b'# dev-team-managed sha256=' + hashlib.sha256(rest).hexdigest().encode() + b'\n' + rest
 
-    def record_known(self, name, body):
-        path = self.package / 'hooks/known_roles.json'
-        known = json.loads(path.read_text())
-        known[name].append(hashlib.sha256(body.encode()).hexdigest())
-        path.write_text(json.dumps(known))
+    def older_marked(self, name=NAMES[0]) -> bytes:
+        """Return the packaged role with older content and a valid marker."""
+        current = (self.package / 'agents' / name).read_bytes().split(b'\n', 1)[1].decode()
+        return self.marked_body(current + '# older release\n')
 
-    def test_known_released_version_is_updated_without_state(self):
-        old = self.released_role()
-        self.record_known(NAMES[0], old)
-        self.role().parent.mkdir(parents=True)
-        self.role().write_text(old)
+    def install_personal(self, body: bytes, name=NAMES[0]):
+        self.role(name).parent.mkdir(parents=True, exist_ok=True)
+        self.role(name).write_bytes(body)
+
+    def test_valid_marker_is_updated_without_state(self):
+        old = self.older_marked()
+        self.install_personal(old)
+        # No state exists and the old digest is in no list, so only the marker allows this.
+        self.assertFalse(self.state.exists())
+        self.assertNotIn(hashlib.sha256(old).hexdigest(), sync_roles.LEGACY_HASHES[NAMES[0]])
         result = self.run_hook()
         self.assertEqual(self.role().read_bytes(), (self.package / 'agents' / NAMES[0]).read_bytes())
         self.assertIn(NAMES[0], json.loads(result.stdout)['systemMessage'])
         self.assertIn('Restart Codex to load these changes.', result.stdout)
 
-    def test_file_that_matches_no_known_version_is_kept_and_named(self):
-        self.role().parent.mkdir(parents=True)
-        self.role().write_text(self.released_role())  # Not recorded as known.
+    def test_edit_below_a_valid_marker_is_kept_and_named(self):
+        edited = self.older_marked().replace(b'# older release', b'# my edit')
+        self.install_personal(edited)
         result = self.run_hook()
-        self.assertEqual(self.role().read_text(), self.released_role())
+        self.assertEqual(self.role().read_bytes(), edited)
         self.assertIn(str(self.role()), json.loads(result.stdout)['systemMessage'])
 
-    def test_unusable_known_versions_never_overwrite_an_unmatched_file(self):
-        old = self.released_role()
-        self.role().parent.mkdir(parents=True)
-        known = self.package / 'hooks/known_roles.json'
-        for content in ('{broken', None):
-            if content is None:
-                known.unlink()
-            else:
-                known.write_text(content)
-            self.role().write_text(old)
-            result = self.run_hook()
-            self.assertEqual(self.role().read_text(), old)
-            self.assertIn('known role versions are not usable', json.loads(result.stdout)['systemMessage'])
-            self.state.unlink()
+    def test_tampered_marker_hash_is_kept(self):
+        old = self.older_marked()
+        first, rest = old.split(b'\n', 1)
+        tampered = first[:-1] + (b'0' if first[-1:] != b'0' else b'1') + b'\n' + rest
+        self.install_personal(tampered)
+        result = self.run_hook()
+        self.assertEqual(self.role().read_bytes(), tampered)
+        self.assertIn(str(self.role()), json.loads(result.stdout)['systemMessage'])
+
+    def test_unmarked_legacy_release_is_updated_without_state(self):
+        for name in NAMES:
+            legacy = sorted(sync_roles.LEGACY_HASHES[name])
+            self.assertTrue(legacy)
+        # A real v0.12.0 file is not available here, so use the hash of known content.
+        body = b'legacy unmarked release\n'
+        original = sync_roles.LEGACY_HASHES[NAMES[0]]
+        sync_roles.LEGACY_HASHES[NAMES[0]] = original | {hashlib.sha256(body).hexdigest()}
+        self.addCleanup(sync_roles.LEGACY_HASHES.__setitem__, NAMES[0], original)
+        # The hook runs in a subprocess, so exercise synchronize() directly.
+        self.install_personal(body)
+        messages = sync_roles.synchronize(self.package, self.home, self.data)
+        self.assertEqual(self.role().read_bytes(), (self.package / 'agents' / NAMES[0]).read_bytes())
+        self.assertTrue(any(NAMES[0] in message for message in messages))
+
+    def test_crlf_variant_of_a_valid_marked_file_is_valid(self):
+        crlf = self.older_marked().replace(b'\n', b'\r\n')
+        self.assertTrue(sync_roles.marked(crlf))
+        self.install_personal(crlf)
+        self.run_hook()
+        self.assertEqual(self.role().read_bytes(), (self.package / 'agents' / NAMES[0]).read_bytes())
 
     def test_symlink_role_state_and_ancestors_are_refused(self):
         outside = self.root / 'outside'

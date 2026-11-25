@@ -38,14 +38,6 @@ class PackageTests(unittest.TestCase):
         instruction = '\nHandle "quotes", triple """ markers, backslashes \\ and Unicode café.  \n\n'
         source.write_text(source.read_text() + instruction)
         self.run_script('build.py', '--check', ok=False)
-        # A changed role needs a recorded hash before the build accepts it.
-        failure = self.run_script('build.py', ok=False)
-        match = re.search(r'dev-team-reviewer\.toml: add ([0-9a-f]{64}) to adapters/codex/hooks/known_roles.json', failure.stderr)
-        self.assertTrue(match, failure.stderr)
-        known_path = self.root / 'adapters/codex/hooks/known_roles.json'
-        known = json.loads(known_path.read_text())
-        known['dev-team-reviewer.toml'].append(match.group(1))
-        known_path.write_text(json.dumps(known))
         self.run_script('build.py')
         claude = (self.root / 'plugins/dev-team/claude/agents/reviewer.md').read_text().split('---', 2)[2].lstrip()
         codex = tomllib.loads((self.root / 'plugins/dev-team/codex/agents/dev-team-reviewer.toml').read_text())
@@ -66,16 +58,15 @@ class PackageTests(unittest.TestCase):
                     self.assertEqual(config['developer_instructions'],
                                      (self.root / f'shared/dev-team/roles/{role}.md').read_text())
 
-    def test_codex_package_wires_the_hook_and_knows_current_roles(self):
+    def test_codex_package_wires_the_hook_and_marks_current_roles(self):
         package = self.root / 'plugins/dev-team/codex'
         manifest = json.loads((package / '.codex-plugin/plugin.json').read_text())
         self.assertEqual(manifest['hooks'], './hooks/hooks.json')
         self.assertTrue((package / 'hooks/hooks.json').is_file())
-        known = json.loads((package / 'hooks/known_roles.json').read_text())
         for role in ('implementer', 'researcher', 'reviewer'):
-            name = f'dev-team-{role}.toml'
-            digest = hashlib.sha256((package / 'agents' / name).read_bytes()).hexdigest()
-            self.assertIn(digest, known[name])
+            body = (package / 'agents' / f'dev-team-{role}.toml').read_bytes()
+            first, rest = body.split(b'\n', 1)
+            self.assertEqual(first, b'# dev-team-managed sha256=' + hashlib.sha256(rest).hexdigest().encode())
 
     def test_claude_package_is_versioned_by_commit_not_a_pinned_string(self):
         manifest = json.loads((self.root / 'plugins/dev-team/claude/.claude-plugin/plugin.json').read_text())

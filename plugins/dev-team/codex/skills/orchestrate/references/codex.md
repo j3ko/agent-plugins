@@ -17,11 +17,11 @@ The hook runs after Codex loads the roles. Thus, a new thread in the same proces
 
 Synchronization uses persistent hashes in `PLUGIN_DATA`. All plugin cache versions use the same hashes. The hook applies these rules:
 
-- It replaces a role file only if the file is identical to the last managed version or to any released version of that role. The file `known_roles.json` in the hook directory lists the hashes of the released versions.
-- If `known_roles.json` is missing or not valid, it replaces only a file that is identical to the last managed version.
+- Each generated role file starts with a marker line `# dev-team-managed sha256=<hash>`. The hash is the SHA-256 of the rest of the file, with CRLF changed to LF.
+- It replaces a role file only if the marker matches the content of the file, if the file is identical to an unmarked earlier release, or if the file is identical to the last managed version.
 - It adopts a file that is already identical.
 - It keeps an unmanaged or locally edited file that is different, and shows a warning.
-- If the state is not valid, it keeps differing files that match no released version.
+- If the state is not valid, it keeps differing files that have no valid marker and match no earlier release.
 - If `PLUGIN_DATA` is missing, it does not synchronize.
 - If a path contains an unsafe symbolic link, it does not synchronize.
 - An older package version never replaces roles that a newer release manages.
@@ -32,7 +32,7 @@ To manage a conflicting file again, do these steps:
 2. Move or remove the file.
 3. Restart Codex.
 
-When roles change, package maintainers must increase the plugin version. They must also add the hash of each new role file to `adapters/codex/hooks/known_roles.json`. The build fails if a hash is missing.
+When roles change, package maintainers must increase the plugin version. The build writes the marker. No other step is necessary.
 
 Project overrides in `.codex/agents/` have priority over these personal roles. The hook never changes project overrides. If you uninstall the plugin, the personal role copies stay. To remove them, delete the three `dev-team-*.toml` files. The hook does not change configuration, authentication or permission settings.
 

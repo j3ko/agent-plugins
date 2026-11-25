@@ -30,7 +30,8 @@ After you add the plugin, do these steps:
 
 The trusted hook installs three personal agent roles in `$CODEX_HOME/agents`.
 The default location is `~/.codex/agents`. The hook also updates a role file
-that is identical to any released version of that role. It keeps and reports
+when its hash marker matches its content, when it matches an unmarked earlier
+release, or when it matches the last managed version. It keeps and reports
 each file that you edited.
 
 Codex checks for plugin updates when it starts. To refresh the marketplace on

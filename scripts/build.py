@@ -63,12 +63,9 @@ def outputs(root: Path) -> dict[str, str]:
                 if tomllib.loads(text)["developer_instructions"] != prompt:
                     raise ValueError(f"{name}: instruction serialization changed content")
                 file_name = f"dev-team-{name}.toml"
-                known = json.loads((root / "adapters/codex/hooks/known_roles.json").read_text())
-                role_hash = hashlib.sha256(text.encode()).hexdigest()
-                if role_hash not in known.get(file_name, []):
-                    raise ValueError(
-                        f"{file_name}: add {role_hash} to adapters/codex/hooks/known_roles.json"
-                    )
+                # The hook replaces a personal copy only if this marker matches the content.
+                rest = text.replace("\r\n", "\n").encode()
+                text = f"# dev-team-managed sha256={hashlib.sha256(rest).hexdigest()}\n" + text
                 result[f"{base}/codex/agents/{file_name}"] = text
         for path in sorted((source / "skills").rglob("*")):
             if path.is_symlink():
