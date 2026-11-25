@@ -29,10 +29,11 @@ After you add the plugin, do these steps:
 3. Restart Codex.
 
 The trusted hook installs three personal agent roles in `$CODEX_HOME/agents`.
-The default location is `~/.codex/agents`. The hook also updates a role file
-when its hash marker matches its content, when it matches an unmarked earlier
-release, or when it matches the last managed version. It keeps and reports
-each file that you edited.
+The default location is `~/.codex/agents`. The plugin owns these files. When a
+role file is different from the packaged file, the hook saves a backup in the
+plugin data directory and then overwrites the file. To customize a role, use a
+project override in `.codex/agents/`. It has priority. Do not edit the personal
+copies.
 
 Codex checks for plugin updates when it starts. To refresh the marketplace on
 demand, run `codex plugin marketplace upgrade j3ko-agents`. After an update, Codex can ask

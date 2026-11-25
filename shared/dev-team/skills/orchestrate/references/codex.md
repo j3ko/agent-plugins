@@ -15,26 +15,20 @@ The hook runs after Codex loads the roles. Thus, a new thread in the same proces
 
 ## Synchronization
 
-Synchronization uses persistent hashes in `PLUGIN_DATA`. All plugin cache versions use the same hashes. The hook applies these rules:
+The plugin owns the three files `$CODEX_HOME/agents/dev-team-{implementer,researcher,reviewer}.toml`. Do not edit them. The hook applies these rules:
 
-- Each generated role file starts with a marker line `# dev-team-managed sha256=<hash>`. The hash is the SHA-256 of the rest of the file, with CRLF changed to LF.
-- It replaces a role file only if the marker matches the content of the file, if the file is identical to an unmarked earlier release, or if the file is identical to the last managed version.
-- It adopts a file that is already identical.
-- It keeps an unmanaged or locally edited file that is different, and shows a warning.
-- If the state is not valid, it keeps differing files that have no valid marker and match no earlier release.
-- If `PLUGIN_DATA` is missing, it does not synchronize.
+- If a role file is missing, it writes the file.
+- If a role file is identical to the packaged file, it does nothing.
+- If a role file is different, it first copies the file to `PLUGIN_DATA/backups/<name>.<UTC timestamp>`. It adds a number to the name if the name already exists. It never overwrites or removes a backup. Then it writes the packaged file. The hook message gives the backup path.
+- If `PLUGIN_DATA` is missing, it installs only missing roles. It does not overwrite a different file, because no backup location exists.
 - If a path contains an unsafe symbolic link, it does not synchronize.
-- An older package version never replaces roles that a newer release manages.
+- An older package version never replaces roles that a newer package installed.
 
-To manage a conflicting file again, do these steps:
+To customize a role, use a project override in `.codex/agents/`. It has priority over the personal roles. The hook never changes project overrides.
 
-1. Inspect the personal role file.
-2. Move or remove the file.
-3. Restart Codex.
+When roles change, package maintainers must increase the plugin version. No other step is necessary.
 
-When roles change, package maintainers must increase the plugin version. The build writes the marker. No other step is necessary.
-
-Project overrides in `.codex/agents/` have priority over these personal roles. The hook never changes project overrides. If you uninstall the plugin, the personal role copies stay. To remove them, delete the three `dev-team-*.toml` files. The hook does not change configuration, authentication or permission settings.
+If you uninstall the plugin, the personal role copies stay. To remove them, delete the three `dev-team-*.toml` files. The hook does not change configuration, authentication or permission settings.
 
 ## Manual fallback
 

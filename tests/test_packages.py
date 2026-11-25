@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import json
 import re
 from pathlib import Path
@@ -58,15 +57,11 @@ class PackageTests(unittest.TestCase):
                     self.assertEqual(config['developer_instructions'],
                                      (self.root / f'shared/dev-team/roles/{role}.md').read_text())
 
-    def test_codex_package_wires_the_hook_and_marks_current_roles(self):
+    def test_codex_package_wires_the_hook(self):
         package = self.root / 'plugins/dev-team/codex'
         manifest = json.loads((package / '.codex-plugin/plugin.json').read_text())
         self.assertEqual(manifest['hooks'], './hooks/hooks.json')
         self.assertTrue((package / 'hooks/hooks.json').is_file())
-        for role in ('implementer', 'researcher', 'reviewer'):
-            body = (package / 'agents' / f'dev-team-{role}.toml').read_bytes()
-            first, rest = body.split(b'\n', 1)
-            self.assertEqual(first, b'# dev-team-managed sha256=' + hashlib.sha256(rest).hexdigest().encode())
 
     def test_claude_package_is_versioned_by_commit_not_a_pinned_string(self):
         manifest = json.loads((self.root / 'plugins/dev-team/claude/.claude-plugin/plugin.json').read_text())

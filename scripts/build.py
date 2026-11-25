@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 from pathlib import Path
 import sys
@@ -63,9 +62,6 @@ def outputs(root: Path) -> dict[str, str]:
                 if tomllib.loads(text)["developer_instructions"] != prompt:
                     raise ValueError(f"{name}: instruction serialization changed content")
                 file_name = f"dev-team-{name}.toml"
-                # The hook replaces a personal copy only if this marker matches the content.
-                rest = text.replace("\r\n", "\n").encode()
-                text = f"# dev-team-managed sha256={hashlib.sha256(rest).hexdigest()}\n" + text
                 result[f"{base}/codex/agents/{file_name}"] = text
         for path in sorted((source / "skills").rglob("*")):
             if path.is_symlink():

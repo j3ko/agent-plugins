@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
@@ -28,7 +28,7 @@ class RoleSyncTests(unittest.TestCase):
         self.home = self.root / 'personal codex'
         self.data = self.root / 'persistent plugin data'
         self.env = {**os.environ, 'CODEX_HOME': str(self.home), 'PLUGIN_DATA': str(self.data)}
-        self.state = self.data / 'dev-team-role-hashes.json'
+        self.state = self.data / 'dev-team-role-sync.json'
 
     def command(self, package=None):
         return [sys.executable, str((package or self.package) / 'hooks/sync_roles.py')]
@@ -62,116 +62,96 @@ class RoleSyncTests(unittest.TestCase):
             role.write_text(role.read_text() + '\n# new release\n')
         return newer
 
-    def test_initial_install_noop_and_update_across_cache_roots(self):
-        self.assertTrue(self.run_hook().stdout)
+    def backups(self):
+        directory = self.data / 'backups'
+        return sorted(directory.glob('*')) if directory.exists() else []
+
+    def test_fresh_install_writes_all_roles_and_state(self):
+        result = self.run_hook()
+        message = json.loads(result.stdout)['systemMessage']
         for name in NAMES:
             self.assertEqual(self.role(name).read_bytes(), (self.package / 'agents' / name).read_bytes())
+            self.assertIn(name, message)
+        self.assertIn('Restart Codex to load these changes.', message)
+        self.assertEqual(self.backups(), [])
+        state = json.loads(self.state.read_text())
+        self.assertEqual(state['version'], 2)
+        self.assertEqual(state['codex_home'], str(self.home))
+
+    def test_identical_roles_give_no_output_and_no_backup(self):
+        self.run_hook()
         before = {p: p.stat().st_mtime_ns for p in (*self.role().parent.glob('*'), self.state)}
         self.assertEqual(self.run_hook().stdout, '')
         self.assertEqual(before, {p: p.stat().st_mtime_ns for p in before})
+        self.assertEqual(self.backups(), [])
+
+    def test_edited_role_is_overwritten_after_a_backup(self):
+        self.run_hook()
+        self.role().write_bytes(b'local edit')
+        result = self.run_hook()
+        self.assertEqual(self.role().read_bytes(), (self.package / 'agents' / NAMES[0]).read_bytes())
+        saved = self.backups()
+        self.assertEqual(len(saved), 1)
+        self.assertEqual(saved[0].read_bytes(), b'local edit')
+        self.assertRegex(saved[0].name, re.escape(NAMES[0]) + r'\.\d{8}T\d{6}Z(\.\d+)?$')
+        message = json.loads(result.stdout)['systemMessage']
+        self.assertIn(str(saved[0]), message)
+        self.assertIn('Restart Codex to load these changes.', message)
+
+    def test_two_updates_in_a_row_keep_two_backups(self):
+        self.run_hook()
+        self.role().write_bytes(b'first edit')
+        self.run_hook()
+        self.role().write_bytes(b'second edit')
+        self.run_hook()
+        saved = self.backups()
+        self.assertEqual(len(saved), 2)
+        self.assertEqual(sorted(p.read_bytes() for p in saved), [b'first edit', b'second edit'])
+
+    def test_missing_plugin_data_installs_only_missing_roles(self):
+        self.role().parent.mkdir(parents=True)
+        self.role().write_bytes(b'local edit')
+        env = self.env.copy()
+        env.pop('PLUGIN_DATA')
+        result = self.run_hook(env=env)
+        self.assertEqual(self.role().read_bytes(), b'local edit')
+        self.assertEqual(self.role(NAMES[1]).read_bytes(), (self.package / 'agents' / NAMES[1]).read_bytes())
+        self.assertIn('no backup location', json.loads(result.stdout)['systemMessage'])
+        self.assertFalse(self.data.exists())
+
+    def test_relative_plugin_data_is_treated_as_missing(self):
+        self.role().parent.mkdir(parents=True)
+        self.role().write_bytes(b'local edit')
+        self.run_hook(env={**self.env, 'PLUGIN_DATA': 'relative'})
+        self.assertEqual(self.role().read_bytes(), b'local edit')
+        self.assertFalse((self.root / 'relative').exists())
+
+    def test_older_package_does_not_replace_newer_roles(self):
+        self.run_hook(self.newer_package())
+        self.role().write_bytes(b'local edit')
+        result = self.run_hook()
+        self.assertEqual(json.loads(result.stdout)['systemMessage'],
+                         'Skipped older dev-team package; newer roles are already installed.')
+        self.assertEqual(self.role().read_bytes(), b'local edit')
+        self.assertEqual(self.backups(), [])
+
+    def test_newer_package_updates_roles_with_a_backup(self):
+        self.run_hook()
         newer = self.newer_package()
         self.run_hook(newer)
         for name in NAMES:
             self.assertEqual(self.role(name).read_bytes(), (newer / 'agents' / name).read_bytes())
-        self.run_hook()  # An old session must not undo the update.
-        self.assertEqual(self.role().read_bytes(), (newer / 'agents' / NAMES[0]).read_bytes())
+        self.assertEqual(len(self.backups()), 3)
 
-    def test_local_edits_and_unknown_collisions_are_never_adopted(self):
-        self.run_hook()
-        self.role().write_text('local edit')
-        self.run_hook(self.newer_package())
-        self.assertEqual(self.role().read_text(), 'local edit')
-        self.assertNotIn(NAMES[0], json.loads(self.state.read_text())['hashes'])
-        self.state.unlink()
-        self.role(NAMES[1]).write_text('unknown role')
-        self.run_hook()
-        self.assertEqual(self.role(NAMES[1]).read_text(), 'unknown role')
-        hashes = json.loads(self.state.read_text())['hashes']
-        self.assertNotIn(NAMES[0], hashes)
-        self.assertNotIn(NAMES[1], hashes)
-
-    def test_identical_existing_role_is_adopted_and_later_updated(self):
-        self.role().parent.mkdir(parents=True)
-        shutil.copyfile(self.package / 'agents' / NAMES[0], self.role())
-        timestamp = self.role().stat().st_mtime_ns
-        self.run_hook()
-        self.assertEqual(self.role().stat().st_mtime_ns, timestamp)
-        self.assertIn(NAMES[0], json.loads(self.state.read_text())['hashes'])
-        newer = self.newer_package()
-        self.run_hook(newer)
-        self.assertEqual(self.role().read_bytes(), (newer / 'agents' / NAMES[0]).read_bytes())
-
-    def test_corrupt_state_preserves_differing_files(self):
-        self.run_hook()
-        self.role().write_text('local edit')
-        self.state.write_text('{broken')
-        original = self.role().read_bytes()
-        self.run_hook(self.newer_package())
-        self.assertEqual(self.role().read_bytes(), original)
-        self.assertNotIn(NAMES[0], json.loads(self.state.read_text())['hashes'])
-
-    def marked_body(self, text: str) -> bytes:
-        """Return a marked role file for the given content below the marker."""
-        rest = text.encode()
-        return b'# dev-team-managed sha256=' + hashlib.sha256(rest).hexdigest().encode() + b'\n' + rest
-
-    def older_marked(self, name=NAMES[0]) -> bytes:
-        """Return the packaged role with older content and a valid marker."""
-        current = (self.package / 'agents' / name).read_bytes().split(b'\n', 1)[1].decode()
-        return self.marked_body(current + '# older release\n')
-
-    def install_personal(self, body: bytes, name=NAMES[0]):
-        self.role(name).parent.mkdir(parents=True, exist_ok=True)
-        self.role(name).write_bytes(body)
-
-    def test_valid_marker_is_updated_without_state(self):
-        old = self.older_marked()
-        self.install_personal(old)
-        # No state exists and the old digest is in no list, so only the marker allows this.
-        self.assertFalse(self.state.exists())
-        self.assertNotIn(hashlib.sha256(old).hexdigest(), sync_roles.LEGACY_HASHES[NAMES[0]])
-        result = self.run_hook()
-        self.assertEqual(self.role().read_bytes(), (self.package / 'agents' / NAMES[0]).read_bytes())
-        self.assertIn(NAMES[0], json.loads(result.stdout)['systemMessage'])
-        self.assertIn('Restart Codex to load these changes.', result.stdout)
-
-    def test_edit_below_a_valid_marker_is_kept_and_named(self):
-        edited = self.older_marked().replace(b'# older release', b'# my edit')
-        self.install_personal(edited)
-        result = self.run_hook()
-        self.assertEqual(self.role().read_bytes(), edited)
-        self.assertIn(str(self.role()), json.loads(result.stdout)['systemMessage'])
-
-    def test_tampered_marker_hash_is_kept(self):
-        old = self.older_marked()
-        first, rest = old.split(b'\n', 1)
-        tampered = first[:-1] + (b'0' if first[-1:] != b'0' else b'1') + b'\n' + rest
-        self.install_personal(tampered)
-        result = self.run_hook()
-        self.assertEqual(self.role().read_bytes(), tampered)
-        self.assertIn(str(self.role()), json.loads(result.stdout)['systemMessage'])
-
-    def test_unmarked_legacy_release_is_updated_without_state(self):
-        for name in NAMES:
-            legacy = sorted(sync_roles.LEGACY_HASHES[name])
-            self.assertTrue(legacy)
-        # A real v0.12.0 file is not available here, so use the hash of known content.
-        body = b'legacy unmarked release\n'
-        original = sync_roles.LEGACY_HASHES[NAMES[0]]
-        sync_roles.LEGACY_HASHES[NAMES[0]] = original | {hashlib.sha256(body).hexdigest()}
-        self.addCleanup(sync_roles.LEGACY_HASHES.__setitem__, NAMES[0], original)
-        # The hook runs in a subprocess, so exercise synchronize() directly.
-        self.install_personal(body)
-        messages = sync_roles.synchronize(self.package, self.home, self.data)
-        self.assertEqual(self.role().read_bytes(), (self.package / 'agents' / NAMES[0]).read_bytes())
-        self.assertTrue(any(NAMES[0] in message for message in messages))
-
-    def test_crlf_variant_of_a_valid_marked_file_is_valid(self):
-        crlf = self.older_marked().replace(b'\n', b'\r\n')
-        self.assertTrue(sync_roles.marked(crlf))
-        self.install_personal(crlf)
-        self.run_hook()
-        self.assertEqual(self.role().read_bytes(), (self.package / 'agents' / NAMES[0]).read_bytes())
+    def test_invalid_state_does_not_stop_the_run(self):
+        invalid = ('{broken', '[]', json.dumps({'version': 2, 'package_version': 'x', 'codex_home': str(self.home)}))
+        for content in invalid:
+            self.data.mkdir(exist_ok=True)
+            self.state.write_text(content)
+            self.role().unlink(missing_ok=True)
+            self.run_hook()
+            self.assertTrue(self.role().is_file())
+            self.assertEqual(json.loads(self.state.read_text())['version'], 2)
 
     def test_symlink_role_state_and_ancestors_are_refused(self):
         outside = self.root / 'outside'
@@ -195,13 +175,6 @@ class RoleSyncTests(unittest.TestCase):
         self.run_hook()
         self.assertEqual(list(outside.iterdir()), [target])
 
-    def test_missing_plugin_data_does_not_write_to_personal_home(self):
-        env = self.env.copy()
-        env.pop('PLUGIN_DATA')
-        self.run_hook(env=env)
-        self.assertFalse(self.home.exists())
-        self.assertFalse(self.data.exists())
-
     def test_concurrent_sync_is_serialized_and_newest_release_wins(self):
         newer = self.newer_package()
         processes = [subprocess.Popen(self.command(package), env=self.env, cwd=self.root,
@@ -218,18 +191,12 @@ class RoleSyncTests(unittest.TestCase):
         newer_version = json.loads((newer / '.codex-plugin/plugin.json').read_text())['version']
         self.assertEqual(json.loads(self.state.read_text())['package_version'], newer_version)
 
-    def test_state_for_another_home_does_not_authorize_replacement(self):
+    def test_state_for_another_home_does_not_skip_this_home(self):
         self.run_hook(self.newer_package())
         other_home = self.root / 'another home'
-        other_role = other_home / 'agents' / NAMES[0]
-        other_role.parent.mkdir(parents=True)
-        # Even a byte-for-byte previous managed release in another home is not ours.
-        other_role.write_bytes(self.role().read_bytes())
-        before = other_role.read_bytes()
         self.run_hook(env={**self.env, 'CODEX_HOME': str(other_home)})
-        self.assertEqual(other_role.read_bytes(), before)
-        self.assertNotIn(NAMES[0], json.loads(self.state.read_text())['hashes'])
-        self.assertTrue((other_role.parent / NAMES[1]).exists())
+        for name in NAMES:
+            self.assertEqual((other_home / 'agents' / name).read_bytes(), (self.package / 'agents' / name).read_bytes())
 
     def test_hook_wiring_handles_plugin_root_with_spaces(self):
         self.assertFalse((self.package / 'plugin.json').exists())
