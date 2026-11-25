@@ -39,8 +39,9 @@ Read the project. Find and record:
 - The user-global files `~/.claude/CLAUDE.md`, and `AGENTS.override.md` and
   `AGENTS.md` in the Codex home (`$CODEX_HOME`, or `~/.codex`). Read them for
   conflicts only.
-- Whether Codex is installed, and whether the project has
-  `.codex/agents/dev-team-*.toml`.
+- Whether Codex is installed, whether the project has
+  `.codex/agents/dev-team-*.toml`, and whether the personal roles
+  `$CODEX_HOME/agents/dev-team-*.toml` (default `~/.codex/agents`) exist.
 - Any earlier bootstrap block, and the state of its markers.
 
 Inspect is complete when each file in the list above is classified or recorded

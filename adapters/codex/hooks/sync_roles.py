@@ -139,7 +139,7 @@ def synchronize(package: Path, home: Path, data: Path) -> list[str]:
                     raise ValueError("invalid managed hashes")
             except (ValueError, KeyError, TypeError):
                 previous = {}
-                messages.append("dev-team role state is invalid; preserving existing differing files.")
+                messages.append("dev-team role state is invalid; keeping differing files that match no released version.")
         known, problems = known_hashes(Path(__file__).resolve().parent / "known_roles.json")
         messages.extend(problems)
         sources = {name: (package / "agents" / name).read_bytes() for name in NAMES}

@@ -21,7 +21,7 @@ Synchronization uses persistent hashes in `PLUGIN_DATA`. All plugin cache versio
 - If `known_roles.json` is missing or not valid, it replaces only a file that is identical to the last managed version.
 - It adopts a file that is already identical.
 - It keeps an unmanaged or locally edited file that is different, and shows a warning.
-- If the state is not valid, it keeps existing files that are different.
+- If the state is not valid, it keeps differing files that match no released version.
 - If `PLUGIN_DATA` is missing, it does not synchronize.
 - If a path contains an unsafe symbolic link, it does not synchronize.
 - An older package version never replaces roles that a newer release manages.
@@ -43,7 +43,7 @@ Use the installer from a clone of this repository:
 - If the skill is already installed as a plugin, run `python3 scripts/install_codex.py --project /path/to/project --agents-only`.
 - To install the roles and the skill, remove `--agents-only` from the command.
 
-The installer writes project overrides. Before you use `--replace`, review the files that are different. Never change the project configuration without authorization from the user. After an update, run the installer again to update the project copies.
+The installer writes project overrides. Before you use `--replace`, review the files that are different. Never change the project configuration without authorization from the user. Start a new Codex session after installation. After an update, run the installer again to update the project copies.
 
 ## Model and effort
 

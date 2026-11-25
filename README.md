@@ -33,7 +33,8 @@ The default location is `~/.codex/agents`. The hook also updates a role file
 that is identical to any released version of that role. It keeps and reports
 each file that you edited.
 
-Codex checks for plugin updates when it starts. After an update, Codex can ask
+Codex checks for plugin updates when it starts. To refresh the marketplace on
+demand, run `codex plugin marketplace upgrade j3ko-agents`. After an update, Codex can ask
 you to trust the hook again. If it asks, review the hook and trust it again.
 If the hook reports role changes, restart Codex.
 

@@ -65,10 +65,12 @@ that Codex loads. If the user wants it, and no such file exists or is planned,
 offer to create `AGENTS.md` with the same options as the `CLAUDE.md` only row
 above.
 
-If Codex is installed and the project has no `.codex/agents/dev-team-*.toml`,
-add a manual follow-up to the plan: run the role installation in
-`../orchestrate/references/codex.md`, section "Role installation". Do not run
-the installer.
+If Codex is installed, and neither the project has `.codex/agents/dev-team-*.toml`
+nor `$CODEX_HOME/agents/dev-team-*.toml` exists, add a manual follow-up to the
+plan: follow the section "Role installation" in
+`../orchestrate/references/codex.md` (trust the hook). As an alternative, name
+the section "Manual fallback" in the same file (the installer). Do not run the
+installer.
 
 ## Earlier installation
 
