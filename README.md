@@ -31,8 +31,8 @@ After you add the plugin, do these steps:
 The trusted hook installs three personal agent roles in `$CODEX_HOME/agents`.
 The default location is `~/.codex/agents`. The plugin owns these files. When a
 role file is different from the packaged file, the hook saves a backup in the
-plugin data directory and then overwrites the file. The hook keeps the five
-newest backups for each role. To customize a role, use a
+plugin data directory and then overwrites the file. For each role, the hook keeps
+the backup that it just made and the four newest older backups. To customize a role, use a
 project override in `.codex/agents/`. It has priority. Do not edit the personal
 copies.
 

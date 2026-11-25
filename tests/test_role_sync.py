@@ -157,6 +157,18 @@ class RoleSyncTests(unittest.TestCase):
         own = [p for p in directory.glob(f'{NAMES[0]}.2020*') if p not in kept]
         self.assertEqual(len(own), 5)
 
+    def test_the_new_backup_survives_when_older_names_have_a_later_timestamp(self):
+        sync_roles.synchronize(self.package, self.home, self.data)
+        directory = self.data / 'backups'
+        directory.mkdir(parents=True)
+        for number in range(5):
+            (directory / f'{NAMES[0]}.20991231T00000{number}Z').write_bytes(b'future')
+        self.role().write_bytes(b'my edit')
+        messages = sync_roles.synchronize(self.package, self.home, self.data)
+        saved = re.search(r'Backup of the previous file: (.+)\.(?:\n|$)', '\n'.join(messages)).group(1)
+        self.assertEqual(Path(saved).read_bytes(), b'my edit')
+        self.assertEqual(len(self.backups()), 5)
+
     def test_failed_prune_is_reported_and_the_sync_succeeds(self):
         self.update_seven_times()
         real = Path.unlink

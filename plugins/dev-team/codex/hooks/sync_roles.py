@@ -108,20 +108,24 @@ def backup(source: Path, directory: Path) -> Path:
 KEEP_BACKUPS = 5
 
 
-def prune(name: str, directory: Path) -> list[str]:
-    """Keep the newest KEEP_BACKUPS backups of one role. Return a line for each error."""
+def prune(name: str, directory: Path, current: Path) -> list[str]:
+    """Keep current and the newest older backups of one role, KEEP_BACKUPS in all.
+
+    Return a line for each error. A backward clock change can make current sort as the
+    oldest, so it is never a candidate for removal.
+    """
     pattern = re.compile(re.escape(name) + r"\.([0-9]{8}T[0-9]{6}Z)(?:\.([0-9]+))?")
     found = []
     try:
         for entry in directory.iterdir():
             match = pattern.fullmatch(entry.name)
-            if match and not entry.is_symlink() and entry.is_file():
+            if match and entry != current and not entry.is_symlink() and entry.is_file():
                 found.append(((match.group(1), int(match.group(2) or 0)), entry))
     except OSError as error:
         return [f"dev-team backup pruning failed for {directory}: {error}"]
     found.sort(key=lambda item: item[0])
     errors = []
-    for _, entry in found[:max(0, len(found) - KEEP_BACKUPS)]:
+    for _, entry in found[:max(0, len(found) - (KEEP_BACKUPS - 1))]:
         try:
             safe(entry)
             entry.unlink()
@@ -175,7 +179,7 @@ def update_roles(package: Path, agents: Path, backups: Path | None) -> tuple[lis
                 saved = backup(target, backups)
                 atomic_write(target, body)
                 messages.append(f"Updated {target}. Backup of the previous file: {saved}.")
-                messages.extend(prune(name, backups))
+                messages.extend(prune(name, backups, saved))
     except (OSError, ValueError) as error:
         # Report the writes that already happened before the error.
         if messages:
