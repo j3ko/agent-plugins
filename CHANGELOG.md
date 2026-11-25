@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.12.2](https://github.com/j3ko/agent-plugins/compare/v0.12.1...v0.12.2) (2026-11-25)
+
+
+### Bug Fixes
+
+* **codex:** dispatch with bundled role prompts ([#74](https://github.com/j3ko/agent-plugins/issues/74)) ([13a0f4f](https://github.com/j3ko/agent-plugins/commit/13a0f4f153ce8a791391af39b0866b92857150de))
+
 ## [0.12.1](https://github.com/j3ko/agent-plugins/compare/v0.12.0...v0.12.1) (2026-11-24)
 
 
