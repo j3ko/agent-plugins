@@ -23,9 +23,11 @@ codex plugin add dev-team@j3ko-agents
 Codex checks for plugin updates when it starts. To refresh the marketplace on
 demand, run `codex plugin marketplace upgrade j3ko-agents`.
 
-To use `$orchestrate`, install the three agent roles in each project from a
-clone of this repository. The installer requires Python 3.11 or later. Follow
-the [Codex role installation instructions](shared/dev-team/skills/orchestrate/references/codex.md#role-installation).
+`$orchestrate` reads the role prompts from its installed plugin package. It
+requires Python 3.11 or later to read the bundled TOML files. No separate role
+installation is needed. For direct use of named roles or a manual installation
+of both skills and agents, follow the optional
+[Codex role installation instructions](shared/dev-team/skills/orchestrate/references/codex.md#role-installation).
 
 ## Project setup
 

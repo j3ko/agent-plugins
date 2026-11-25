@@ -19,7 +19,7 @@ Before you delegate, read the project instructions and the delegation contract. 
 Read the reference for the host that you use:
 
 - [Claude Code](references/claude.md): role names, worktree isolation and model overrides.
-- [Codex](references/codex.md): role installation, explicit worktree assignment and inherited permissions.
+- [Codex](references/codex.md): bundled role prompts, native dispatch, explicit worktree assignment and inherited permissions.
 
 ## Runtime selection
 
@@ -41,7 +41,7 @@ Example: "For this session, research with Codex Luna and implement with Claude S
 
 Keep session preferences in the conversation. Save them persistently only if the owner asks. Before dispatch, state the resolved host, model and effort. Put these values in the handoff.
 
-For native agents, use the spawn controls of the host to pass the model and effort. If the selections change, use a new agent. A Codex model override needs a new context, not a full-history fork. Loaded role settings or the tool interface of the host can prevent the requested selection. If this occurs, report the limit before dispatch. Do not silently inherit a different model.
+For native agents, use the spawn controls of the host to pass the model and effort. If the selections change, use a new agent. A Codex model override needs a new context, not a full-history fork. On paths that use named roles, custom role settings can prevent the requested selection. The tool interface can also prevent it. If this occurs, report the limit before dispatch. Do not silently inherit a different model.
 
 For a different host or a separate CLI session, read [cross-host handoffs](references/cross-host.md). This reference gives role transfer, the working directory, runtime arguments, project permission settings and report collection.
 

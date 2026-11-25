@@ -39,8 +39,7 @@ Read the project. Find and record:
 - The user-global files `~/.claude/CLAUDE.md`, and `AGENTS.override.md` and
   `AGENTS.md` in the Codex home (`$CODEX_HOME`, or `~/.codex`). Read them for
   conflicts only.
-- Whether Codex is installed, and whether the project has
-  `.codex/agents/dev-team-*.toml`.
+- Whether Codex is installed, to select the wait rule.
 - Any earlier bootstrap block, and the state of its markers.
 
 Inspect is complete when each file in the list above is classified or recorded
@@ -59,7 +58,7 @@ approve or change the items one at a time. The plan lists:
 2. Each file action (create, edit or link), with the exact text or a diff.
 3. Each conflict or redundancy, with `file:line`, the quoted text and the
    proposed action.
-4. Manual follow-ups, for example the Codex role installation.
+4. Any manual follow-ups for the proposed file actions.
 5. Questions for the user.
 
 If no file needs a change, follow the "no changes" rule in

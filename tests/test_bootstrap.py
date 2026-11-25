@@ -82,15 +82,5 @@ class BootstrapTests(unittest.TestCase):
                 path = ROOT / 'plugins/dev-team' / host / 'skills/bootstrap' / '..' / name / 'SKILL.md'
                 self.assertTrue(path.resolve().is_file(), str(path))
 
-    def test_codex_reference_path_resolves_in_both_host_packages(self):
-        text = (ROOT / SKILL / 'references/scenarios.md').read_text()
-        paths = set(re.findall(r'`(\.\./[a-z-]+/references/[a-z-]+\.md)`', text))
-        self.assertIn('../orchestrate/references/codex.md', paths)
-        for host in ('claude', 'codex'):
-            for rel in paths:
-                path = ROOT / 'plugins/dev-team' / host / 'skills/bootstrap' / rel
-                self.assertTrue(path.resolve().is_file(), str(path))
-
-
 if __name__ == '__main__':
     unittest.main()
