@@ -112,6 +112,69 @@ class RoleSyncTests(unittest.TestCase):
                          [f'{NAMES[0]}.20200101T000000Z', f'{NAMES[0]}.20200101T000000Z.1'])
         self.assertEqual([p.read_bytes() for p in saved], [b'first edit', b'second edit'])
 
+    def update_seven_times(self):
+        sync_roles.synchronize(self.package, self.home, self.data)
+        with mock.patch.object(sync_roles, 'stamp', return_value='20200101T000000Z'):
+            for number in range(7):
+                self.role().write_bytes(f'edit {number}'.encode())
+                sync_roles.synchronize(self.package, self.home, self.data)
+
+    def test_only_the_five_newest_backups_of_a_role_stay(self):
+        self.update_seven_times()
+        # Edits 0 to 6 give .0 (no suffix) to .6; the order is numeric, so .10 follows .9.
+        self.assertEqual(sorted(p.read_bytes() for p in self.backups()),
+                         [f'edit {n}'.encode() for n in range(2, 7)])
+        with mock.patch.object(sync_roles, 'stamp', return_value='20200101T000000Z'):
+            for number in range(7, 13):
+                self.role().write_bytes(f'edit {number}'.encode())
+                sync_roles.synchronize(self.package, self.home, self.data)
+        names = sorted(p.name for p in self.backups())
+        self.assertEqual(sorted(p.read_bytes() for p in self.backups()),
+                         sorted(f'edit {n}'.encode() for n in range(8, 13)))
+        self.assertIn(f'{NAMES[0]}.20200101T000000Z.12', names)
+
+    def test_pruning_leaves_other_files_symlinks_and_other_roles_alone(self):
+        directory = self.data / 'backups'
+        directory.mkdir(parents=True)
+        outside = self.root / 'outside'
+        outside.write_text('untouched')
+        kept = [directory / 'notes.txt', directory / f'{NAMES[0]}.bak',
+                directory / f'{NAMES[0]}.20200101T000000Z.x']
+        for number in range(8):
+            kept.append(directory / f'{NAMES[1]}.2019010{number}T000000Z')
+        for path in kept:
+            path.write_text('keep')
+        # A symlink with a matching name is not followed and not counted.
+        (directory / f'{NAMES[0]}.20100101T000000Z').symlink_to(outside)
+        sync_roles.synchronize(self.package, self.home, self.data)
+        for number in range(6):
+            self.role().write_bytes(f'edit {number}'.encode())
+            with mock.patch.object(sync_roles, 'stamp', return_value=f'2020010{number}T000000Z'):
+                sync_roles.synchronize(self.package, self.home, self.data)
+        self.assertTrue(all(path.exists() for path in kept))
+        self.assertTrue((directory / f'{NAMES[0]}.20100101T000000Z').is_symlink())
+        self.assertEqual(outside.read_text(), 'untouched')
+        own = [p for p in directory.glob(f'{NAMES[0]}.2020*') if p not in kept]
+        self.assertEqual(len(own), 5)
+
+    def test_failed_prune_is_reported_and_the_sync_succeeds(self):
+        self.update_seven_times()
+        real = Path.unlink
+        def failing(path, *args, **kwargs):
+            if path.parent == self.data / 'backups':
+                raise OSError('read-only')
+            return real(path, *args, **kwargs)
+        self.role().write_bytes(b'another edit')
+        with mock.patch.object(Path, 'unlink', failing):
+            with mock.patch.object(sync_roles, 'stamp', return_value='20200101T000000Z'):
+                messages = sync_roles.synchronize(self.package, self.home, self.data)
+        text = '\n'.join(messages)
+        self.assertEqual(self.role().read_bytes(), (self.package / 'agents' / NAMES[0]).read_bytes())
+        self.assertIn('Updated', text)
+        self.assertIn('Restart Codex to load these changes.', text)
+        self.assertIn('read-only', text)
+        self.assertIn(NAMES[0], text.split('read-only')[0].splitlines()[-1])
+
     def test_unsafe_role_blocks_every_write(self):
         self.run_hook()
         self.role().write_bytes(b'local edit')
@@ -129,6 +192,8 @@ class RoleSyncTests(unittest.TestCase):
         self.run_hook()
         self.role(NAMES[0]).write_bytes(b'edit one')
         self.role(NAMES[1]).write_bytes(b'edit two')
+        # With no state file, a state write after the failure would be visible.
+        self.state.unlink()
         real = sync_roles.atomic_write
         def fail_on_second(path, body):
             if path == self.role(NAMES[1]):
@@ -142,6 +207,8 @@ class RoleSyncTests(unittest.TestCase):
         self.assertIn(str(first_backup), text)
         self.assertIn('disk full', text)
         self.assertIn('Restart Codex to load these changes.', text)
+        self.assertFalse(self.state.exists())
+        self.assertEqual(self.role(NAMES[1]).read_bytes(), b'edit two')
 
     def test_missing_plugin_data_installs_only_missing_roles(self):
         self.role().parent.mkdir(parents=True)

@@ -19,7 +19,7 @@ The plugin owns the three files `$CODEX_HOME/agents/dev-team-{implementer,resear
 
 - If a role file is missing, it writes the file.
 - If a role file is identical to the packaged file, it does nothing.
-- If a role file is different, it first copies the file to `PLUGIN_DATA/backups/<name>.<UTC timestamp>`. It adds a number to the name if the name already exists. It never overwrites or removes a backup. Then it writes the packaged file. The hook message gives the backup path.
+- If a role file is different, it first copies the file to `PLUGIN_DATA/backups/<name>.<UTC timestamp>`. It adds a number to the name if the name already exists. It never overwrites a backup. Then it writes the packaged file. The hook message gives the backup path. After each overwrite, the hook keeps the five newest backups of that role and removes the older ones. It reports a backup that it cannot remove, and the synchronization continues.
 - If `PLUGIN_DATA` is missing, it installs only missing roles. It does not overwrite a different file, because no backup location exists.
 - If a path contains an unsafe symbolic link, it does not synchronize.
 - An older package version never replaces roles that a newer package installed.

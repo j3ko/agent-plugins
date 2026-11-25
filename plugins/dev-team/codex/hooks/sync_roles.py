@@ -88,7 +88,11 @@ def backup(source: Path, directory: Path) -> Path:
     directory.mkdir(parents=True, exist_ok=True)
     moment = stamp()
     body = source.read_bytes()
-    for number in range(10000):
+    # Start after the highest number in use. Pruning can free a lower name, and a new
+    # backup must never sort before an older one.
+    used = [int(match.group(1) or 0) for entry in directory.iterdir()
+            if (match := re.fullmatch(re.escape(f"{source.name}.{moment}") + r"(?:\.([0-9]+))?", entry.name))]
+    for number in range(max(used) + 1 if used else 0, 10000):
         path = directory / (f"{source.name}.{moment}" + (f".{number}" if number else ""))
         safe(path)
         try:
@@ -99,6 +103,31 @@ def backup(source: Path, directory: Path) -> Path:
         except FileExistsError:
             continue
     raise ValueError(f"No free backup name for {source.name}")
+
+
+KEEP_BACKUPS = 5
+
+
+def prune(name: str, directory: Path) -> list[str]:
+    """Keep the newest KEEP_BACKUPS backups of one role. Return a line for each error."""
+    pattern = re.compile(re.escape(name) + r"\.([0-9]{8}T[0-9]{6}Z)(?:\.([0-9]+))?")
+    found = []
+    try:
+        for entry in directory.iterdir():
+            match = pattern.fullmatch(entry.name)
+            if match and not entry.is_symlink() and entry.is_file():
+                found.append(((match.group(1), int(match.group(2) or 0)), entry))
+    except OSError as error:
+        return [f"dev-team backup pruning failed for {directory}: {error}"]
+    found.sort(key=lambda item: item[0])
+    errors = []
+    for _, entry in found[:max(0, len(found) - KEEP_BACKUPS)]:
+        try:
+            safe(entry)
+            entry.unlink()
+        except (OSError, ValueError) as error:
+            errors.append(f"dev-team backup pruning failed for {entry}: {error}")
+    return errors
 
 
 def newer_state_exists(state: Path, home: Path, release: tuple[int, ...]) -> bool:
@@ -146,6 +175,7 @@ def update_roles(package: Path, agents: Path, backups: Path | None) -> tuple[lis
                 saved = backup(target, backups)
                 atomic_write(target, body)
                 messages.append(f"Updated {target}. Backup of the previous file: {saved}.")
+                messages.extend(prune(name, backups))
     except (OSError, ValueError) as error:
         # Report the writes that already happened before the error.
         if messages:
